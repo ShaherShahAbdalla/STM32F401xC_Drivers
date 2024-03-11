@@ -28,45 +28,47 @@
 
 
 /* Number of bits that is not connected (not implemented) in the Pending register NVIC_IPRx */
-#define NVIC_PR_NON_IMP_BITS				(4)
+#define NVIC_PR_NON_IMP_BITS							(4)
 
 /* The base address of the main NVIC register block */
-#define NVIC_BASE_ADDRESS					(0xE000E100UL)
+#define NVIC_BASE_ADDRESS								(0xE000E100UL)
 /* The base address of the SCB register block */
-#define SCB_BASE_ADDRESS					(0xE000E008UL)
+#define SCB_BASE_ADDRESS								(0xE000E008UL)
 
 /* Number of bits in a register (register width) */
-#define REGISTER_WIDTH						(32)
+#define REGISTER_WIDTH									(32)
 /* Number of fields included in each one of the IPRx registers */
-#define IPR_FIELDS_PER_REGISTER					(4)
+#define IPR_FIELDS_PER_REGISTER							(4)
 
 /* Mask for the INTID bits in the STIR register in the NVIC */
-#define NVIC_STIR_INTID_SET_MASK			(0x000001FFUL)
+#define NVIC_STIR_INTID_SET_MASK						(0x000001FFUL)
 /* Mask for the IP[N] field in the IPRx register */
-#define NVIC_IPRX_IP_N_SET_MASK				(0x000000FFUL)
+#define NVIC_IPRX_IP_N_SET_MASK							(0x000000FFUL)
 /* Mask for the PRIGROUP bits in the AIRCR register */
-#define SCB_AIRCR_PRIGROUP_BITS_SET_MASK	(0x00000700UL)
+#define SCB_AIRCR_PRIGROUP_BITS_SET_MASK				(0x00000700UL)
 
 /* Number of bits specified for each field in each of the IPRx registers */
-#define FIELDS_PER_REGISTER_BITS_NUMBER		(8)
+#define FIELDS_PER_REGISTER_BITS_NUMBER					(8)
 
 /* Position of the PRIGROUP bits in the AIRCR register */
-#define SCB_AIRCR_PRIGROUP_BITS_POSITION	(8)
+#define SCB_AIRCR_PRIGROUP_BITS_POSITION				(8)
+/* Position of the VECTKEYSTAT/ VECTKEY bits in the AIRCR register */
+#define SCB_AIRCR_VECTKEYSTAT_VECTKEY_BITS_POSITION		(16)
 
 
 /* Priority Group Options */
 /* PG stands for Priority Group, GPB stands for Group Priority Bits, and SPB stands for SubPriority Bits */
 
 /* Group priority bits = [7:4], SubPriority bits = None */
-#define PG_GPB_7_TO_4_SPB_NONE_VALUE		(0x00000000UL)
+#define PG_GPB_7_TO_4_SPB_NONE_VALUE					(0x00000000UL)
 /* Group priority bits = [7:5], SubPriority bits = [4] */
-#define PG_GPB_7_TO_5_SPB_4_VALUE			(0x00000400UL)
+#define PG_GPB_7_TO_5_SPB_4_VALUE						(0x00000400UL)
 /* Group priority bits = [7:6], SubPriority bits = [5:4] */
-#define PG_GPB_7_TO_6_SPB_5_TO_4_VALUE		(0x00000500UL)
+#define PG_GPB_7_TO_6_SPB_5_TO_4_VALUE					(0x00000500UL)
 /* Group priority bits = [7], SubPriority bits = [6:4] */
-#define PG_GPB_7_SPB_6_TO_4_VALUE			(0x00000600UL)
+#define PG_GPB_7_SPB_6_TO_4_VALUE						(0x00000600UL)
 /* Group priority bits = None, SubPriority bits = [7:4] */
-#define PG_GPB_NONE_SPB_7_TO_4_VALUE		(0x00000700UL)
+#define PG_GPB_NONE_SPB_7_TO_4_VALUE					(0x00000700UL)
 
 
 
@@ -523,7 +525,10 @@ NVIC_enuErrorStatus_t NVIC_SetPriorityGrouping(uint32_t priorityGroup)
 		LOC_u32LocalReg |= (priorityGroup);
 		/* As We finish the configurations, We can assign directly in the
 		 * real register */
-		SCB->AIRCR = LOC_u32LocalReg;
+
+		/* But it is mentioned in the data sheet that we must write 0x5FA in the VECTKEYSTAT/ VECTKEY bits in AIRCR
+		 * so that what We write after could be listened */
+		SCB->AIRCR = (0x5FA << SCB_AIRCR_VECTKEYSTAT_VECTKEY_BITS_POSITION) | (LOC_u32LocalReg);
 	}
 
 	return LOC_enuErrorStatus;
