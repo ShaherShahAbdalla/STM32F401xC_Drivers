@@ -153,6 +153,9 @@ NVIC_enuErrorStatus_t NVIC_EnableIRQ(IRQs_t IRQ_)
 	NVIC_enuErrorStatus_t LOC_enuErrorStatus = NVIC_enuOk;
 
 	/* Check that the entered IRQ is in the specified range */
+	/* The compiler will generate the following warning:
+	 * "comparison is always false due to limited range of data type [-Wtype-limits]"
+	 * ignore it */
 	if ((IRQ_ < 0) || (IRQ_ >= _IRQ_MAX))
 	{
 		/* If the user entered an invalid value for the interrupt request, return NOT OK in the error status */
@@ -180,6 +183,9 @@ NVIC_enuErrorStatus_t NVIC_DisableIRQ(IRQs_t IRQ_)
 	NVIC_enuErrorStatus_t LOC_enuErrorStatus = NVIC_enuOk;
 
 	/* Check that the entered IRQ is in the specified range */
+	/* The compiler will generate the following warning:
+	 * "comparison is always false due to limited range of data type [-Wtype-limits]"
+	 * ignore it */
 	if ((IRQ_ < 0) || (IRQ_ >= _IRQ_MAX))
 	{
 		/* If the user entered an invalid value for the interrupt request, return NOT OK in the error status */
@@ -207,6 +213,9 @@ NVIC_enuErrorStatus_t NVIC_SetPendingIRQ(IRQs_t IRQ_)
 	NVIC_enuErrorStatus_t LOC_enuErrorStatus = NVIC_enuOk;
 
 	/* Check that the entered IRQ is in the specified range */
+	/* The compiler will generate the following warning:
+	 * "comparison is always false due to limited range of data type [-Wtype-limits]"
+	 * ignore it */
 	if ((IRQ_ < 0) || (IRQ_ >= _IRQ_MAX))
 	{
 		/* If the user entered an invalid value for the interrupt request, return NOT OK in the error status */
@@ -234,6 +243,9 @@ NVIC_enuErrorStatus_t NVIC_ClearPendingIRQ(IRQs_t IRQ_)
 	NVIC_enuErrorStatus_t LOC_enuErrorStatus = NVIC_enuOk;
 
 	/* Check that the entered IRQ is in the specified range */
+	/* The compiler will generate the following warning:
+	 * "comparison is always false due to limited range of data type [-Wtype-limits]"
+	 * ignore it */
 	if ((IRQ_ < 0) || (IRQ_ >= _IRQ_MAX))
 	{
 		/* If the user entered an invalid value for the interrupt request, return NOT OK in the error status */
@@ -262,6 +274,9 @@ NVIC_enuErrorStatus_t NVIC_GetPendingIRQ(IRQs_t IRQ_, uint32_t* pendingStatus)
 	NVIC_enuErrorStatus_t LOC_enuErrorStatus = NVIC_enuOk;
 
 	/* Check that the entered IRQ is in the specified range */
+	/* The compiler will generate the following warning:
+	 * "comparison is always false due to limited range of data type [-Wtype-limits]"
+	 * ignore it */
 	if ((IRQ_ < 0) || (IRQ_ >= _IRQ_MAX))
 	{
 		/* If the user entered an invalid value for the interrupt request, return NOT OK in the error status */
@@ -295,6 +310,9 @@ NVIC_enuErrorStatus_t NVIC_GetActiveStatusIRQ(IRQs_t IRQ_, uint32_t* activeStatu
 	NVIC_enuErrorStatus_t LOC_enuErrorStatus = NVIC_enuOk;
 
 	/* Check that the entered IRQ is in the specified range */
+	/* The compiler will generate the following warning:
+	 * "comparison is always false due to limited range of data type [-Wtype-limits]"
+	 * ignore it */
 	if ((IRQ_ < 0) || (IRQ_ >= _IRQ_MAX))
 	{
 		/* If the user entered an invalid value for the interrupt request, return NOT OK in the error status */
@@ -329,18 +347,27 @@ NVIC_enuErrorStatus_t NVIC_SetPriorityIRQ(IRQs_t IRQ_, uint8_t PREEMPTION_LEVEL_
 	NVIC_enuErrorStatus_t LOC_enuErrorStatus = NVIC_enuOk;
 
 	/* Check that the entered IRQ is in the specified range */
+	/* The compiler will generate the following warning:
+	 * "comparison is always false due to limited range of data type [-Wtype-limits]"
+	 * ignore it */
 	if ((IRQ_ < 0) || (IRQ_ >= _IRQ_MAX))
 	{
 		/* If the user entered an invalid value for the interrupt request, return NOT OK in the error status */
 		LOC_enuErrorStatus = NVIC_enuNotOk;
 	}
 	/* Check on the inputed preemption level if it in the specified range or not */
+	/* The compiler will generate the following warning:
+	 * "comparison is always false due to limited range of data type [-Wtype-limits]"
+	 * ignore it */
 	else if ((PREEMPTION_LEVEL_ < PREEMPTION_LEVEL_0) || (PREEMPTION_LEVEL_ > PREEMPTION_LEVEL_15))
 	{
 		/* if not return an error */
 		LOC_enuErrorStatus = NVIC_enuWrongPreemptionLevel;
 	}
 	/* Check on the inputed subPriority level if it in the specified range or not */
+	/* The compiler will generate the following warning:
+	 * "comparison is always false due to limited range of data type [-Wtype-limits]"
+	 * ignore it */
 	else if ((SUBPRIORITY_LEVEL_ < SUBPRIORITY_LEVEL_0) || (SUBPRIORITY_LEVEL_ > SUBPRIORITY_LEVEL_15))
 	{
 		/* if not return an error */
@@ -442,6 +469,9 @@ NVIC_enuErrorStatus_t NVIC_GetPriorityIRQ(IRQs_t IRQ_, uint8_t* priorityLevel)
 	NVIC_enuErrorStatus_t LOC_enuErrorStatus = NVIC_enuOk;
 
 	/* Check that the entered IRQ is in the specified range */
+	/* The compiler will generate the following warning:
+	 * "comparison is always false due to limited range of data type [-Wtype-limits]"
+	 * ignore it */
 	if ((IRQ_ < 0) || (IRQ_ >= _IRQ_MAX))
 	{
 		/* If the user entered an invalid value for the interrupt request, return NOT OK in the error status */
@@ -474,6 +504,9 @@ NVIC_enuErrorStatus_t NVIC_GenerateSoftwareIRQ(IRQs_t IRQ_)
 	NVIC_enuErrorStatus_t LOC_enuErrorStatus = NVIC_enuOk;
 
 	/* Check that the entered IRQ is in the specified range */
+	/* The compiler will generate the following warning:
+	 * "comparison is always false due to limited range of data type [-Wtype-limits]"
+	 * ignore it */
 	if ((IRQ_ < 0) || (IRQ_ >= _IRQ_MAX))
 	{
 		/* If the user entered an invalid value for the interrupt request, return NOT OK in the error status */
@@ -508,6 +541,9 @@ NVIC_enuErrorStatus_t NVIC_SetPriorityGrouping(uint32_t priorityGroup)
 	NVIC_enuErrorStatus_t LOC_enuErrorStatus = NVIC_enuOk;
 
 	/* Check that the entered IRQ is in the specified range */
+	/* The compiler will generate the following warning:
+	 * "comparison of unsigned expression < 0 is always false [-Wtype-limits]"
+	 * ignore it */
 	if ((priorityGroup < PG_GPB_7_TO_4_SPB_NONE_MASK) || (priorityGroup > PG_GPB_NONE_SPB_7_TO_4_MASK))
 	{
 		/* If the user entered an invalid value for the interrupt request, return NOT OK in the error status */

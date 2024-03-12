@@ -202,4 +202,4 @@ GPIO_enuErrorStatus_t GPIO_enuGetPinVal(uint32_t Copy_u32PortNum, uint32_t Copy_
 
 
 
-#endif GPIO_INTERFACE_H_
+#endif /* GPIO_INTERFACE_H_ */

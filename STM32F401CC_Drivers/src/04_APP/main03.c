@@ -27,21 +27,21 @@
 
 /******************************************************************************
  *
- * File Name: main.c
+ * File Name: main03.c
  *
- * Description: Testing the LED and the Switch driver.
+ * Description: Testing the SysTick driver.
  *
  * Author: Shaher Shah Abdalla Kamal
  *
- * Date: 24-02-2024
+ * Date: 12-03-2024
  *
  *******************************************************************************/
 
 
 // ----------------------------------------------------------------------------
 
-#include "02_HAL/00_LED/LED.h"
-#include "02_HAL/01_SWITCH/SWITCH.h"
+#include "../02_HAL/00_LED/LED.h"
+#include "../01_MCAL/03_SYSTICK/SYSTICK_interface.h"
 
 // ----------------------------------------------------------------------------
 //
@@ -63,6 +63,32 @@
 #pragma GCC diagnostic ignored "-Wmissing-declarations"
 #pragma GCC diagnostic ignored "-Wreturn-type"
 
+
+void toggleLED (void)
+{
+	static uint8_t LOC_counter = 0;
+	static uint8_t LOC_counter2 = 0;
+
+	LOC_counter++;
+	LOC_counter2++;
+
+	if (LOC_counter == 1)
+	{
+		LED_enuPowerON(ALARM_LED);
+	}
+	else
+	{
+		LOC_counter = 0;
+		LED_enuPowerOFF(ALARM_LED);
+	}
+	/* Disable the SysTick After 16 toggles */
+	if (LOC_counter2 == 16)
+	{
+		SYSTICK_Stop();
+	}
+}
+
+
 int
 main(int argc, char* argv[])
 {
@@ -71,30 +97,15 @@ main(int argc, char* argv[])
 
 
 	LED_enuInit();
-
-	SWITCH_enuInit();
-
-
-	SWITCH_enuSwitchState_t Add_enuSwitchState = 0;
-
+	SYSTICK_SetTimeMilliSec(1000);
+	SYSTICK_SetCallBack(toggleLED);
+	SYSTICK_Start(START_PERIODIC);
 
 
   // Infinite loop
   while (1)
     {
-       // Add your code here.
 
-	  SWITCH_enuGetSwitchState(ON_SW,&Add_enuSwitchState);
-
-	  if (Add_enuSwitchState == SWITCH_enuIS_PRESSED)
-	  {
-		  LED_enuPowerON(ALARM_LED);
-	  }
-	  SWITCH_enuGetSwitchState(OFF_SW,&Add_enuSwitchState);
-	  if (Add_enuSwitchState == SWITCH_enuIS_PRESSED)
-	  {
-		  LED_enuPowerOFF(ALARM_LED);
-	  }
     }
 }
 
