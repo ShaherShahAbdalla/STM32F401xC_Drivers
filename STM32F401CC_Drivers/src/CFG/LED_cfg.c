@@ -13,9 +13,10 @@
  *******************************************************************************/
 
 /* Including the .h file that contains Driver's APIs' prototypes and typedefs' declaration. */
-#include "./LED.h"
+#include <CFG/LED_cfg.h>
+
+#include <HAL/LED.h>
 /* ِIncluding the .h file that contains all configurations */
-#include "./LED_cfg.h"
 
 /* Description: Create array of LEDs you chose, setting inside it the configuration you want for each LED.
  * example:

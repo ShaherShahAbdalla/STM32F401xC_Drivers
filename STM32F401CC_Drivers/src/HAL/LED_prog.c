@@ -13,16 +13,10 @@
  *******************************************************************************/
 
 /* ِIncluding the .h file that contains typedefs for the primitive data types */
-#include "../../00_LIB/std_types.h"
-
-/* Including the RCC to be able to enable the GPIO peripherals */
-#include "../../01_MCAL/00_RCC/RCC_interface.h"
-
-/* Including the GPIO driver to be able to configure and set the pins to which the LEDs are connected */
-#include "../../01_MCAL/01_GPIO/GPIO_interface.h"
-
-/* Including the .h file that contains Driver's APIs' prototypes and typedefs' declaration. */
-#include "./LED.h"
+#include <HAL/LED.h>
+#include <LIB/std_types.h>
+#include <MCAL/GPIO_interface.h>
+#include <MCAL/RCC_interface.h>
 
 
 /****************************************************************************************/

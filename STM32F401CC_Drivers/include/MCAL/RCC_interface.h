@@ -19,7 +19,7 @@
 /*										Includes										*/
 /****************************************************************************************/
 /* ِIncluding the .h file that contains typedefs for the primitive data types */
-#include "../../00_LIB/std_types.h"
+#include <LIB/std_types.h>
 
 
 /****************************************************************************************/

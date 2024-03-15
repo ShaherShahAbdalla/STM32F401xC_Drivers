@@ -21,9 +21,9 @@
 /*										Includes										*/
 /****************************************************************************************/
 
-#include "../../00_LIB/std_types.h"
+#include <LIB/std_types.h>
 
-#include "./INTERRUPTS.h"
+#include <MCAL/INTERRUPTS.h>
 
 
 

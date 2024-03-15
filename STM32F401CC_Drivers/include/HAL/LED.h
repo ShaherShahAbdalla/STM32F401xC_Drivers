@@ -1,25 +1,24 @@
 /******************************************************************************
  *
- * Module: SWITCH driver to initialize DIO pins for the connected Switches, and getting its state.
+ * Module: LED driver to initialize DIO pins for the connected LEDs, Powering it ON and OFF.
  *
- * File Name: SWITCH.h
+ * File Name: LED.h
  *
  * Description: Driver's APIs' prototypes and typedefs' declaration.
  *
  * Author: Shaher Shah Abdalla Kamal
  *
- * Date: 15-12-2023 (Edited for ARM at 21-02-2024)
+ * Date: 11-12-2023 (Edited for ARM at 19-02-2024)
  *
  *******************************************************************************/
 
-#ifndef SWITCH_H_
-#define SWITCH_H_
+#ifndef LED_H_
+#define LED_H_
 
 /* ِIncluding the .h file that contains typedefs for the primitive data types */
-#include "../../00_LIB/std_types.h"
+#include <CFG/LED_cfg.h>
+#include <LIB/std_types.h>
 
-/* ِIncluding the .h file that contains all configurations */
-#include "./SWITCH_cfg.h"
 
 /****************************************************************************************/
 /*								User-defined Declaration								*/
@@ -33,65 +32,57 @@ typedef enum
 	/**
 	 *@brief : Everything OK, Function had Performed Correctly.
 	 */
-	SWITCH_enuOk = 0,
+	LED_enuOk = 0,
 	/**
 	 *@brief : Something is wrong, Function hadn't Performed Correctly.
 	 */
-	SWITCH_enuNotOk,
+	LED_enuNotOk,
 	/**
 	 *@brief : NULL Pointer is passed.
 	 */
-	SWITCH_enuNullPointer,
+	LED_enuNullPointer,
 	/**
-	 *@brief : Wrong Connection Method is entered.
+	 *@brief : .
 	 */
-	SWITCH_enuWrongConnectionMethod,
+	LED_enuWrongActiveState,
 	/**
-	 *@brief : Wrong Switch Name is entered.
+	 *@brief : .
 	 */
-	SWITCH_enuWrongSwitchName
+	LED_enuWrongPowerState
 
-}SWITCH_enuErrorStatus_t;
+}LED_enuErrorStatus_t;
 
 /**
- *@brief :	Connection method of the switch
+ *@brief : Active State type
  */
 typedef enum
 {
 	/**
-	 *@brief : Switch is connected with Internal pull-up method.
+	 *@brief : LED is connected with active low mode, it needs 0 volt / (LOW) to be powered ON.
 	 */
-	SWITCH_enuInternalPullUpConnection = 0,
+	LED_enuActiveLow = 0,
 	/**
-	 *@brief : Switch is connected with External pull-up method.
+	 *@brief : LED is connected with active high mode, it needs 3.3 or 5 volt / (high) to be powered ON.
 	 */
-	SWITCH_enuExternalPullUpConnection,
-	/**
-	 *@brief : Switch is connected with Internal pull-down method.
-	 */
-	SWITCH_enuInternalPullDownConnection,
-	/**
-	 *@brief : Switch is connected with External pull-down method.
-	 */
-	SWITCH_enuExternalPullDownConnection
+	LED_enuActiveHigh
 
-}SWITCH_enuConnectionMethod_t;
+}LED_enuConnectionType_t;
 
 /**
- *@brief :	State of the switch, whether pressed or not
+ *@brief : LED State type
  */
 typedef enum
 {
 	/**
-	 *@brief : Switch is not pressed.
+	 *@brief : LED is powered OFF.
 	 */
-	SWITCH_enuNOT_PRESSED = 0,
+	LED_enuOFF = 0,
 	/**
-	 *@brief : Switch is pressed.
+	 *@brief : LED is powered ON.
 	 */
-	SWITCH_enuIS_PRESSED
+	LED_enuON
 
-}SWITCH_enuSwitchState_t;
+}LED_enuInitState_t;
 
 
 /* GPIO ports */
@@ -126,29 +117,38 @@ typedef enum
 /****************************************************************************************/
 
 
-/* Structure that will be passed by address to SWITCH_enumInit function to set the configuration of a Switch */
+/* Structure that will be passed by address to LED_enuInit function to set the configuration of a LED */
 typedef struct {
-	uint32_t SW_port_number;
-	uint32_t SW_pin_number;
-	SWITCH_enuConnectionMethod_t SW_connection_method;
-}SWITCH_strSwitchConfig_t;
+	uint32_t LED_port_number;
+	uint32_t LED_pin_number;
+	LED_enuConnectionType_t connection_type;
+	LED_enuInitState_t init_state;
+}LED_strLEDconfig_t;
 
 /********************************************************************************************/
 /*									Functions' Declaration									*/
 /********************************************************************************************/
 
 /**
- *@brief : Function to Set the pins to which the switches are connected to.
+ *@brief : Function to Set the pins to which the LEDs is connected to.
  *@param : void.
- *@return: Error Status.
+ *@return: Error State.
  */
-SWITCH_enuErrorStatus_t SWITCH_enuInit(void);
+LED_enuErrorStatus_t LED_enuInit(void);
 
 /**
- *@brief : Function to check if the switch is pressed or not.
- *@param : Name of the switch you want to check, address of a local variable to assign state of the switch in it.
+ *@brief : Function to power ON the entered LED.
+ *@param : Name of the LED you want to power it ON.
  *@return: Error Status.
  */
-SWITCH_enuErrorStatus_t SWITCH_enuGetSwitchState(uint8_t copy_uint8SwitchName, SWITCH_enuSwitchState_t* Add_enuSwitchState);
+LED_enuErrorStatus_t LED_enuPowerON(uint8_t copy_LEDname);
 
-#endif /* SWITCH_H_ */
+/**
+ *@brief : Function to power OFF the entered LED.
+ *@param : Name of the LED you want to power it OFF.
+ *@return: Error Status.
+ */
+LED_enuErrorStatus_t LED_enuPowerOFF(uint8_t copy_LEDname);
+
+
+#endif /* LED_H_ */

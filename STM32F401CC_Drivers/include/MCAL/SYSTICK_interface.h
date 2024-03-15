@@ -22,9 +22,9 @@
 /****************************************************************************************/
 
 
-#include "../../00_LIB/std_types.h"
+#include <CFG/SYSTICK_cfg.h>
+#include <LIB/std_types.h>
 
-#include "./SYSTICK_cfg.h"
 
 
 

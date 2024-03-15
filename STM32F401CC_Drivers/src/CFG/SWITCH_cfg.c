@@ -13,9 +13,10 @@
  *******************************************************************************/
 
 /* Including the .h file that contains Driver's APIs' prototypes and typedefs' declaration. */
-#include "./SWITCH.h"
+#include <CFG/SWITCH_cfg.h>
+
+#include <HAL/SWITCH.h>
 /* ِIncluding the .h file that contains all configurations */
-#include "./SWITCH_cfg.h"
 
 /* Description: Create array of switches you chose, setting inside it the configuration you want for each switch.
  * example:

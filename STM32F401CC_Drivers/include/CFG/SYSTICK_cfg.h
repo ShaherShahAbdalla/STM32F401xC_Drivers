@@ -21,7 +21,7 @@
 /****************************************************************************************/
 
 
-/* Description: Set the number of connected LEDs
+/* Description: Enter the value of the Clock Source (AHB).
  * Options:	Enter the value of the AHB clock in Hz */
 #define AHB_CLOCK_SOURCE_VALUE					(16000000UL)
 
