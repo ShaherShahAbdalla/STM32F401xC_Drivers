@@ -31,7 +31,7 @@
  * examples:	#define	START_MOTOR_SWITCH			0
  * 				#define SOMETHING_SWITCH			1
  * 	and so on ...										*/
-#define	ON_SW							0
+#define	CTRL_SW							0
 #define OFF_SW							1
 
 #endif /* SWITCH_CFG_H_ */

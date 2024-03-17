@@ -254,3 +254,15 @@ SWITCH_enuErrorStatus_t SWITCH_enuGetSwitchState(uint8_t copy_uint8SwitchName, S
 
 	return LOC_enuErrorStatus;
 }
+
+
+
+/**
+ *@brief : Runnable with periodicity 30 milliseconds.
+ *@param : void.
+ *@return: void.
+ */
+void RUNNABLE_SWITCH_getSwitchState(void)
+{
+
+}

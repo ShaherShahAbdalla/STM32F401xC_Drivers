@@ -83,7 +83,7 @@
 };																									*/
 
 SWITCH_strSwitchConfig_t arrayofSwitchesConfig [NUM_OF_SWITCHES] = {
-	[ON_SW] = { .SW_port_number = GPIO_PORTB,
+	[CTRL_SW] = { .SW_port_number = GPIO_PORTB,
 					.SW_pin_number = GPIO_PIN0,
 					.SW_connection_method = SWITCH_enuInternalPullDownConnection
 	},

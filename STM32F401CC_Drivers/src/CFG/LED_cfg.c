@@ -86,7 +86,27 @@
 
 LED_strLEDconfig_t arrayofLEDsconfig [NUM_OF_LEDS] = {
 	[ALARM_LED] = { .LED_port_number = GPIO_PORTA,
+					.LED_pin_number = GPIO_PIN0,
+					.connection_type = LED_enuActiveHigh,
+					.init_state = LED_enuOFF
+	},
+	[TEST_LED] = { .LED_port_number = GPIO_PORTA,
+					.LED_pin_number = GPIO_PIN1,
+					.connection_type = LED_enuActiveHigh,
+					.init_state = LED_enuOFF
+	},
+	[RED_LED] = { .LED_port_number = GPIO_PORTA,
 					.LED_pin_number = GPIO_PIN2,
+					.connection_type = LED_enuActiveHigh,
+					.init_state = LED_enuOFF
+	},
+	[YELLOW_LED] = { .LED_port_number = GPIO_PORTA,
+					.LED_pin_number = GPIO_PIN3,
+					.connection_type = LED_enuActiveHigh,
+					.init_state = LED_enuOFF
+	},
+	[GREEN_LED] = { .LED_port_number = GPIO_PORTA,
+					.LED_pin_number = GPIO_PIN4,
 					.connection_type = LED_enuActiveHigh,
 					.init_state = LED_enuOFF
 	}
