@@ -49,7 +49,7 @@ extern const runnable_t arrayOfRunnables [_RunnablesNumber_];
 
 
 /* The reason of "volatile" is that */
-static volatile uint32_t pendingTicks = 0;
+static volatile uint32_t pendingTasks = 0;
 
 
 
@@ -97,7 +97,7 @@ static void SCHED_sched(void)
  */
 void tickCallBack(void)
 {
-	pendingTicks++;
+	pendingTasks++;
 }
 
 
@@ -123,9 +123,9 @@ void SCHED_start(void)
 	SYSTICK_Start(START_PERIODIC);
 	while (1)
 	{
-		if(pendingTicks)
+		if(pendingTasks)
 		{
-			pendingTicks--;
+			pendingTasks--;
 			SCHED_sched();
 		}
 	}

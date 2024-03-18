@@ -264,5 +264,5 @@ SWITCH_enuErrorStatus_t SWITCH_enuGetSwitchState(uint8_t copy_uint8SwitchName, S
  */
 void RUNNABLE_SWITCH_getSwitchState(void)
 {
-
+	uint32_t iterator;
 }
