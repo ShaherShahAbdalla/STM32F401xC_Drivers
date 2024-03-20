@@ -18,8 +18,8 @@
 /****************************************************************************************/
 
 
-#include "MCAL/SYSTICK_interface.h"
-#include "SERVICE/SCHED_interface.h"
+#include <MCAL/SYSTICK.h>
+#include <SERVICE/SCHED.h>
 
 
 

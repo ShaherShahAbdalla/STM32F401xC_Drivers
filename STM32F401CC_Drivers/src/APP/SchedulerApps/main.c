@@ -11,7 +11,7 @@
  *******************************************************************************/
 
 
-#include "SERVICE/SCHED_interface.h"
+#include <SERVICE/SCHED.h>
 #include "HAL/LED.h"
 #include "HAL/SWITCH.h"
 

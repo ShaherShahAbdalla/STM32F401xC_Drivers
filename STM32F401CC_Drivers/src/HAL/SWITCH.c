@@ -15,8 +15,8 @@
 /* ِIncluding the .h file that contains typedefs for the primitive data types */
 #include <HAL/SWITCH.h>
 #include <LIB/std_types.h>
-#include <MCAL/GPIO_interface.h>
-#include <MCAL/RCC_interface.h>
+#include <MCAL/GPIO.h>
+#include <MCAL/RCC.h>
 
 /****************************************************************************************/
 /*									MACROS Declaration									*/

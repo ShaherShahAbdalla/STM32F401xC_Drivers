@@ -16,7 +16,7 @@
 
 
 #include <CFG/SCHED_Runnables_cfg.h>
-#include "SERVICE/SCHED_interface.h"
+#include <SERVICE/SCHED.h>
 
 
 
