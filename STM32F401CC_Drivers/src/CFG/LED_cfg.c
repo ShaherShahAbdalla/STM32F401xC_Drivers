@@ -109,5 +109,15 @@ LED_strLEDconfig_t arrayofLEDsconfig [NUM_OF_LEDS] = {
 					.LED_pin_number = GPIO_PIN4,
 					.connection_type = LED_enuActiveHigh,
 					.init_state = LED_enuOFF
+	},
+	[LCD_initDone] = { .LED_port_number = GPIO_PORTA,
+					.LED_pin_number = GPIO_PIN5,
+					.connection_type = LED_enuActiveHigh,
+					.init_state = LED_enuOFF
+	},
+	[LCD_writeDone] = { .LED_port_number = GPIO_PORTA,
+					.LED_pin_number = GPIO_PIN6,
+					.connection_type = LED_enuActiveHigh,
+					.init_state = LED_enuOFF
 	}
 };

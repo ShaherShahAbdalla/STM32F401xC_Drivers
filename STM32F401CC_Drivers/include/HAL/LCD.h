@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Module: 	LCD driver to: 	- Initialize DIO pins to which the LCD is connected to.
+ * Module: 	LCD driver to: 	- Initialize GPIO pins to which the LCD is connected to.
  * 							- Displaying what the user wants.
  *
  * Supported Models:	- 16 x 2 Character LCD.
@@ -11,12 +11,18 @@
  *
  * Author: Shaher Shah Abdalla Kamal
  *
- * Date: 01-01-2024
+ * Date: 01-01-2024 (Edited for ARM at 18-03-2024)
  *
  *******************************************************************************/
 
 #ifndef LCD_H_
 #define LCD_H_
+
+
+/************************************************************************************/
+/*									Includes										*/
+/************************************************************************************/
+
 
 /* ِIncluding the .h file that contains typedefs for the primitive data types */
 #include "LIB/std_types.h"
@@ -24,29 +30,10 @@
 /* ِIncluding the .h file that contains all configurations */
 #include "CFG/LCD_cfg.h"
 
-/****************************************************************************************/
-/*									extern Variables									*/
-/****************************************************************************************/
 
-#if (LCD_DATA_BITS_MODE == LCD_EIGHT_BITS_MODE)
-extern LCD_strLCDPinConfig_t arrayofLCDPinConfig [11];
-#elif (LCD_DATA_BITS_MODE == LCD_FOUR_BITS_MODE)
-extern LCD_strLCDPinConfig_t arrayofLCDPinConfig [7];
-#endif
-
-extern uint8_t customChar1[8];
-extern uint8_t customChar2[8];
-extern uint8_t customChar3[8];
-extern uint8_t customChar4[8];
-extern uint8_t customChar5[8];
-extern uint8_t customChar6[8];
-extern uint8_t customChar7[8];
-extern uint8_t customChar8[8];
-
-
-/****************************************************************************************/
-/*									Macros Declaration									*/
-/****************************************************************************************/
+/************************************************************************************/
+/*								Macros Declaration									*/
+/************************************************************************************/
 
 /**
  *@brief : Clear the display and return the cursor to the upper left corner in the LCD.
@@ -185,9 +172,9 @@ extern uint8_t customChar8[8];
 
 
 
-/****************************************************************************************/
-/*								User-defined Declaration								*/
-/****************************************************************************************/
+/************************************************************************************/
+/*								User-defined Declaration							*/
+/************************************************************************************/
 
 /**
  *@brief : The Error List Type
@@ -197,29 +184,33 @@ typedef enum
 	/**
 	 *@brief : Everything OK, Function had Performed Correctly.
 	 */
-	LCD_enumOk = 0,
+	LCD_enuOk = 0,
+	/**
+	 *@brief : Something went wrong in the function.
+	 */
+	LCD_enuNotOk,
 	/**
 	 *@brief : NULL Pointer is passed.
 	 */
-	LCD_enumNullPointer,
+	LCD_enuNullPointer,
 	/**
 	 *@brief : If the entered Row number is not exist in the LCD.
 	 */
-	LCD_enumWrongRowNumber,
+	LCD_enuWrongRowNumber,
 	/**
 	 *@brief : If the entered Column number is not exist in the LCD.
 	 */
-	LCD_enumWrongColumnNumber,
+	LCD_enuWrongColumnNumber,
 	/**
 	 *@brief : If the entered Block number is not exist in the CGRAM.
 	 */
-	LCD_enumWrongBlockNumber,
+	LCD_enuWrongBlockNumber,
 	/**
 	 *@brief : If a problem happen when setting the value or the direction of one of the pin that the LCD is connected to.
 	 */
-	LCD_enumWrongPinConfiguration
+	LCD_enuWrongPinConfiguration
 
-}LCD_enumError_t;
+}LCD_enuError_t;
 
 
 /**
@@ -230,13 +221,13 @@ typedef enum
 	/**
 	 *@brief : First row in the LCD.
 	 */
-	LCD_enumFirstRow = 0,
+	LCD_enuFirstRow = 0,
 	/**
 	 *@brief : Second row in the LCD.
 	 */
-	LCD_enumSecondRow
+	LCD_enuSecondRow
 
-}LCD_enumRowNumber_t;
+}LCD_enuRowNumber_t;
 
 
 /**
@@ -247,206 +238,165 @@ typedef enum
 	/**
 	 *@brief : First column in the LCD.
 	 */
-	LCD_enumColumn_1 = 0,
+	LCD_enuColumn_1 = 0,
 	/**
 	 *@brief : Second column in the LCD.
 	 */
-	LCD_enumColumn_2,
+	LCD_enuColumn_2,
 	/**
 	 *@brief : Third column in the LCD.
 	 */
-	LCD_enumColumn_3,
+	LCD_enuColumn_3,
 	/**
 	 *@brief : Column number 4 in the LCD.
 	 */
-	LCD_enumColumn_4,
+	LCD_enuColumn_4,
 	/**
 	 *@brief : Column number 5 in the LCD.
 	 */
-	LCD_enumColumn_5,
+	LCD_enuColumn_5,
 	/**
 	 *@brief : Column number 6 in the LCD.
 	 */
-	LCD_enumColumn_6,
+	LCD_enuColumn_6,
 	/**
 	 *@brief : Column number 7 in the LCD.
 	 */
-	LCD_enumColumn_7,
+	LCD_enuColumn_7,
 	/**
 	 *@brief : Column number 8 in the LCD.
 	 */
-	LCD_enumColumn_8,
+	LCD_enuColumn_8,
 	/**
 	 *@brief : Column number 9 in the LCD.
 	 */
-	LCD_enumColumn_9,
+	LCD_enuColumn_9,
 	/**
 	 *@brief : Column number 10 in the LCD.
 	 */
-	LCD_enumColumn_10,
+	LCD_enuColumn_10,
 	/**
 	 *@brief : Column number 11 in the LCD.
 	 */
-	LCD_enumColumn_11,
+	LCD_enuColumn_11,
 	/**
 	 *@brief : Column number 12 in the LCD.
 	 */
-	LCD_enumColumn_12,
+	LCD_enuColumn_12,
 	/**
 	 *@brief : Column number 13 in the LCD.
 	 */
-	LCD_enumColumn_13,
+	LCD_enuColumn_13,
 	/**
 	 *@brief : Column number 14 in the LCD.
 	 */
-	LCD_enumColumn_14,
+	LCD_enuColumn_14,
 	/**
 	 *@brief : Column number 15 in the LCD.
 	 */
-	LCD_enumColumn_15,
+	LCD_enuColumn_15,
 	/**
 	 *@brief : Column number 16 in the LCD.
 	 */
-	LCD_enumColumn_16,
+	LCD_enuColumn_16,
 	/**
 	 *@brief : Column number 17 in the LCD.
 	 */
-	LCD_enumColumn_17,
+	LCD_enuColumn_17,
 	/**
 	 *@brief : Column number 18 in the LCD.
 	 */
-	LCD_enumColumn_18,
+	LCD_enuColumn_18,
 	/**
 	 *@brief : Column number 19 in the LCD.
 	 */
-	LCD_enumColumn_19,
+	LCD_enuColumn_19,
 	/**
 	 *@brief : Column number 20 in the LCD.
 	 */
-	LCD_enumColumn_20,
+	LCD_enuColumn_20,
 	/**
 	 *@brief : Column number 21 in the LCD.
 	 */
-	LCD_enumColumn_21,
+	LCD_enuColumn_21,
 	/**
 	 *@brief : Column number 22 in the LCD.
 	 */
-	LCD_enumColumn_22,
+	LCD_enuColumn_22,
 	/**
 	 *@brief : Column number 23 in the LCD.
 	 */
-	LCD_enumColumn_23,
+	LCD_enuColumn_23,
 	/**
 	 *@brief : Column number 24 in the LCD.
 	 */
-	LCD_enumColumn_24,
+	LCD_enuColumn_24,
 	/**
 	 *@brief : Column number 25 in the LCD.
 	 */
-	LCD_enumColumn_25,
+	LCD_enuColumn_25,
 	/**
 	 *@brief : Column number 26 in the LCD.
 	 */
-	LCD_enumColumn_26,
+	LCD_enuColumn_26,
 	/**
 	 *@brief : Column number 27 in the LCD.
 	 */
-	LCD_enumColumn_27,
+	LCD_enuColumn_27,
 	/**
 	 *@brief : Column number 28 in the LCD.
 	 */
-	LCD_enumColumn_28,
+	LCD_enuColumn_28,
 	/**
 	 *@brief : Column number 29 in the LCD.
 	 */
-	LCD_enumColumn_29,
+	LCD_enuColumn_29,
 	/**
 	 *@brief : Column number 30 in the LCD.
 	 */
-	LCD_enumColumn_30,
+	LCD_enuColumn_30,
 	/**
 	 *@brief : Column number 31 in the LCD.
 	 */
-	LCD_enumColumn_31,
+	LCD_enuColumn_31,
 	/**
 	 *@brief : Column number 32 in the LCD.
 	 */
-	LCD_enumColumn_32,
+	LCD_enuColumn_32,
 	/**
 	 *@brief : Column number 33 in the LCD.
 	 */
-	LCD_enumColumn_33,
+	LCD_enuColumn_33,
 	/**
 	 *@brief : Column number 34 in the LCD.
 	 */
-	LCD_enumColumn_34,
+	LCD_enuColumn_34,
 	/**
 	 *@brief : Column number 35 in the LCD.
 	 */
-	LCD_enumColumn_35,
+	LCD_enuColumn_35,
 	/**
 	 *@brief : Column number 36 in the LCD.
 	 */
-	LCD_enumColumn_36,
+	LCD_enuColumn_36,
 	/**
 	 *@brief : Column number 37 in the LCD.
 	 */
-	LCD_enumColumn_37,
+	LCD_enuColumn_37,
 	/**
 	 *@brief : Column number 38 in the LCD.
 	 */
-	LCD_enumColumn_38,
+	LCD_enuColumn_38,
 	/**
 	 *@brief : Column number 39 in the LCD.
 	 */
-	LCD_enumColumn_39,
+	LCD_enuColumn_39,
 	/**
 	 *@brief : Column number 40 in the LCD.
 	 */
-	LCD_enumColumn_40,
+	LCD_enuColumn_40,
 
-}LCD_enumColumnNumber_t;
-
-
-/**
- *@brief : The available Block numbers in the CGRAM
- */
-typedef enum
-{
-	/**
-	 *@brief : First block in the CGRAM.
-	 */
-	LCD_enumBlockNumber_1 = 0,
-	/**
-	 *@brief : Second block in the CGRAM.
-	 */
-	LCD_enumBlockNumber_2,
-	/**
-	 *@brief : Third block in the CGRAM.
-	 */
-	LCD_enumBlockNumber_3,
-	/**
-	 *@brief : Fourth block in the CGRAM.
-	 */
-	LCD_enumBlockNumber_4,
-	/**
-	 *@brief : Fifth block in the CGRAM.
-	 */
-	LCD_enumBlockNumber_5,
-	/**
-	 *@brief : Sixth block in the CGRAM.
-	 */
-	LCD_enumBlockNumber_6,
-	/**
-	 *@brief : Seventh block in the CGRAM.
-	 */
-	LCD_enumBlockNumber_7,
-	/**
-	 *@brief : Eighth block in the CGRAM.
-	 */
-	LCD_enumBlockNumber_8
-
-}LCD_enumBlockNumber_t;
+}LCD_enuColumnNumber_t;
 
 
 /* Structure that will be used when setting the direction and the value of any of the LCD's pins */
@@ -455,59 +405,51 @@ typedef struct {
 	uint32_t LCD_pin_number;
 }LCD_strLCDPinConfig_t;
 
-/********************************************************************************************/
-/*									Functions' Declaration									*/
-/********************************************************************************************/
+/************************************************************************************/
+/*								Functions' Declaration								*/
+/************************************************************************************/
+
 
 /**
- *@brief : Function to Set the pins to which the LCD is connected to, and to initialize the LCD.
- *@param : void.
+ *@brief : Function that initializes the LCD.
+ *@param : a callback function you want to be called after finishing your request.
  *@return: Error State.
  */
-LCD_enumError_t LCD_enumInit(void);
+LCD_enuError_t LCD_enuInitAsync(void (*callBackFn)(void));
+
 
 /**
- *@brief : Function to Write data to the LCD.
- *@param : Data you want to send.
+ *@brief : Function that returns to you the current state of the LCD.
+ *@param : pointer inside which We will return to you the state of the LCD.
  *@return: Error State.
  */
-LCD_enumError_t LCD_enumWriteData(uint8_t Copy_uint8Data);
+LCD_enuError_t LCD_enuGetState(uint8_t* State);
+
 
 /**
- *@brief : Function to Write command to the LCD.
- *@param : Command you want to send.
+ *@brief : Function that clears the screen.
+ *@param : a callback function you want to be called after finishing your request.
  *@return: Error State.
  */
-LCD_enumError_t LCD_enumWriteCommand(uint8_t Copy_uint8Command);
+LCD_enuError_t LCD_enuClearScreenAsync(void (*callBackFn)(void));
+
 
 /**
- *@brief : Function to go to certain location in the DDRAM.
- *@param : The row number, and the column number in that row.
+ *@brief : Function that sets the cursor's position.
+ *@param : The row and the column you want the cursor to go at, and a callback function
+ *			you want to be called after finishing your request.
  *@return: Error State.
  */
-LCD_enumError_t LCD_enumGotoDDRAM_XY(LCD_enumRowNumber_t Copy_uint8X, LCD_enumColumnNumber_t Copy_uint8Y);
+LCD_enuError_t LCD_enuSetCursorAsync(LCD_enuRowNumber_t row, uint8_t column, void (*callBackFn)(void));
+
 
 /**
- *@brief : Function to Print certain number on the LCD.
- *@param : Number you want to print.
+ *@brief : Function that prints a string on the LCD.
+ *@param : String you want to print, a callback function you want to be called after finishing
+ *			your request.
  *@return: Error State.
  */
-LCD_enumError_t LCD_enumWriteNumber(uint64_t Copy_uint64Number);
+LCD_enuError_t LCD_enuWriteStringAsync(uint8_t* string, void (*callBackFn)(void));
 
-/**
- *@brief : Function to Print certain string on the LCD.
- *@param : String you want to print.
- *@return: Error State.
- */
-LCD_enumError_t LCD_enumWriteString(uint8_t* Copy_puint8Pattern);
-
-/**
- *@brief : Function to Save Special character in the CGRAM, and then to print it on the LCD.
- *@param : Special character you want to print, the block number that character will be saved inside in the
- *			CGRAM, then (for the printing purpose) the row and column number in which that character will
- *			be displayed.
- *@return: Error State.
- */
-LCD_enumError_t LCD_enumDisplaySpecialPattern(uint8_t* Copy_puint8SpecialChar, LCD_enumBlockNumber_t Copy_uint8CGRAMBlockNumber, LCD_enumRowNumber_t Copy_uint8X, LCD_enumColumnNumber_t Copy_uint8Y);
 
 #endif /* LCD_H_ */

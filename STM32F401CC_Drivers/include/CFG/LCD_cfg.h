@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Module: 	LCD driver to: 	- Initialize DIO pins to which the LCD is connected to.
+ * Module: 	LCD driver to: 	- Initialize GPIO pins to which the LCD is connected to.
  * 							- Displaying what the user wants.
  *
  * Supported Models:	- 16 x 2 Character LCD.
@@ -11,7 +11,7 @@
  *
  * Author: Shaher Shah Abdalla Kamal
  *
- * Date: 01-01-2024
+ * Date: 01-01-2024 (Edited for ARM at 18-03-2024)
  *
  *******************************************************************************/
 

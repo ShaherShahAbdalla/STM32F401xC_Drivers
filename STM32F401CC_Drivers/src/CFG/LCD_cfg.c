@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Module: 	LCD driver to: 	- Initialize DIO pins to which the LCD is connected to.
+ * Module: 	LCD driver to: 	- Initialize GPIO pins to which the LCD is connected to.
  * 							- Displaying what the user wants.
  *
  * Supported Models:	- 16 x 2 Character LCD.
@@ -11,7 +11,7 @@
  *
  * Author: Shaher Shah Abdalla Kamal
  *
- * Date: 01-01-2024
+ * Date: 01-01-2024 (Edited for ARM at 18-03-2024)
  *
  *******************************************************************************/
 
@@ -93,126 +93,26 @@ LCD_strLCDPinConfig_t arrayofLCDPinConfig [11] = {
 
 LCD_strLCDPinConfig_t arrayofLCDPinConfig [7] = {
 	/* Write the port and the pin that the D4 pin is connected to */
-	[D4_4BITMODE] = 	{ 	.LCD_port_number = GPIO_PORTA,
+	[D4_4BITMODE] = 	{ 	.LCD_port_number = GPIO_PORTB,
 							.LCD_pin_number = GPIO_PIN3	},
 	/* Write the port and the pin that the D5 pin is connected to */
-	[D5_4BITMODE] = 	{ 	.LCD_port_number = GPIO_PORTA,
+	[D5_4BITMODE] = 	{ 	.LCD_port_number = GPIO_PORTB,
 							.LCD_pin_number = GPIO_PIN4	},
 	/* Write the port and the pin that the D6 pin is connected to */
-	[D6_4BITMODE] = 	{ 	.LCD_port_number = GPIO_PORTA,
+	[D6_4BITMODE] = 	{ 	.LCD_port_number = GPIO_PORTB,
 							.LCD_pin_number = GPIO_PIN5	},
 	/* Write the port and the pin that the D7 pin is connected to */
-	[D7_4BITMODE] = 	{ 	.LCD_port_number = GPIO_PORTA,
+	[D7_4BITMODE] = 	{ 	.LCD_port_number = GPIO_PORTB,
 							.LCD_pin_number = GPIO_PIN6	},
 	/* Write the port and the pin that the Register Select (RS) pin is connected to */
-	[RS_4BITMODE] = 	{ 	.LCD_port_number = GPIO_PORTA,
-							.LCD_pin_number = GPIO_PIN1	},
+	[RS_4BITMODE] = 	{ 	.LCD_port_number = GPIO_PORTB,
+							.LCD_pin_number = GPIO_PIN7	},
 	/* Write the port and the pin that the Read/Write (R/w) pin is connected to */
-	[RW_4BITMODE] = 	{ 	.LCD_port_number = GPIO_PORTC,
-							.LCD_pin_number = GPIO_PIN0	},
+	[RW_4BITMODE] = 	{ 	.LCD_port_number = GPIO_PORTB,
+							.LCD_pin_number = GPIO_PIN8	},
 	/* Write the port and the pin that the Enable (E) pin is connected to */
-	[E_4BITMODE] = 	{ 	.LCD_port_number = GPIO_PORTC,
-						.LCD_pin_number = GPIO_PIN2	}
+	[E_4BITMODE] = 	{ 	.LCD_port_number = GPIO_PORTB,
+						.LCD_pin_number = GPIO_PIN9	}
 };
 
 #endif /* #if (LCD_DATA_BITS_MODE == LCD_EIGHT_BITS_MODE) */
-
-/********************************************************************************************/
-/*									Custom Characters Arrays								*/
-/********************************************************************************************/
-
-/* Custom Character Definition */
-uint8_t customChar1[8] = {
-		0b00000,
-		0b00000,
-		0b01010,
-		0b10101,
-		0b10001,
-		0b01010,
-		0b00100,
-		0b00000
-};
-
-/* Custom Character Definition */
-uint8_t customChar2[8] = {
-		0b00000,
-		0b00000,
-		0b00000,
-		0b10101,
-		0b10101,
-		0b11111,
-		0b00000,
-		0b00000
-};
-
-/* Custom Character Definition */
-uint8_t customChar3[8] = {
-		0b00000,
-		0b00000,
-		0b00000,
-		0b00010,
-		0b00010,
-		0b11111,
-		0b10100,
-		0b00000
-};
-
-/* Custom Character Definition */
-uint8_t customChar4[8] = {
-		0b00000,
-		0b00000,
-		0b00000,
-		0b01000,
-		0b00100,
-		0b11111,
-		0b00000,
-		0b00000
-};
-
-/* Custom Character Definition */
-uint8_t customChar5[8] = {
-		0b00000,
-		0b00000,
-		0b00011,
-		0b00100,
-		0b00100,
-		0b11111,
-		0b00000,
-		0b00000
-};
-
-/* Custom Character Definition */
-uint8_t customChar6[8] = {
-		0b00000,
-		0b00000,
-		0b00000,
-		0b00100,
-		0b01010,
-		0b11011,
-		0b00100,
-		0b00000
-};
-
-/* Custom Character Definition */
-uint8_t customChar7[8] = {
-		0b00000,
-		0b00010,
-		0b00010,
-		0b01010,
-		0b10010,
-		0b11111,
-		0b00000,
-		0b00000
-};
-
-/* Custom Character Definition */
-uint8_t customChar8[8] = {
-		0b00000,
-		0b00000,
-		0b00000,
-		0b00000,
-		0b00000,
-		0b00000,
-		0b00000,
-		0b00000
-};

@@ -88,7 +88,7 @@ SWITCH_strSwitchConfig_t arrayofSwitchesConfig [NUM_OF_SWITCHES] = {
 					.SW_connection_method = SWITCH_enuInternalPullDownConnection
 	},
 	[OFF_SW] = { .SW_port_number = GPIO_PORTB,
-					.SW_pin_number = GPIO_PIN7,
+					.SW_pin_number = GPIO_PIN1,
 					.SW_connection_method = SWITCH_enuInternalPullUpConnection
 	}
 };

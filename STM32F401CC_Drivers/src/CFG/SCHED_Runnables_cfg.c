@@ -30,6 +30,7 @@ extern void RUNNABLE_toggleLED(void);
 extern void RUNNABLE_ctrlLED(void);
 extern void RUNNABLE_SWITCH_getSwitchState(void);
 extern void RUNNABLE_trafficLight_stateMachine(void);
+extern void RUNNABLE_LCD(void);
 
 
 
@@ -75,5 +76,9 @@ const runnable_t arrayOfRunnables [_RunnablesNumber_] = {
 	[trafficLightSM] 	= { .name = "Traffic light application",
 							.periodicityMS = 1000,
 							.callBackFn = RUNNABLE_trafficLight_stateMachine
+	},
+	[lcdRunnable] 		= { .name = "LCD module",
+							.periodicityMS = 1,
+							.callBackFn = RUNNABLE_LCD
 	}
 };

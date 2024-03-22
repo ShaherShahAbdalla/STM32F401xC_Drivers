@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Module: 	LCD driver to: 	- Initialize DIO pins to which the LCD is connected to.
+ * Module: 	LCD driver to: 	- Initialize GPIO pins to which the LCD is connected to.
  * 							- Displaying what the user wants.
  *
  * Supported Models:	- 16 x 2 Character LCD.
@@ -11,13 +11,20 @@
  *
  * Author: Shaher Shah Abdalla Kamal
  *
- * Date: 01-01-2024
+ * Date: 01-01-2024 (Edited for ARM at 18-03-2024)
  *
  *******************************************************************************/
 
-#include <MCAL/GPIO.h>
+
+/************************************************************************************/
+/*										Includes									*/
+/************************************************************************************/
+
+
 #include <MCAL/RCC.h>
+#include <MCAL/GPIO.h>
 #include "HAL/LCD.h"
+
 
 
 /* Check first if the user entered an invalid data bits mode */
@@ -28,836 +35,1116 @@
 #else
 
 
+/************************************************************************************/
+/*									extern Variables								*/
+/************************************************************************************/
+
+#if (LCD_DATA_BITS_MODE == LCD_EIGHT_BITS_MODE)
+extern LCD_strLCDPinConfig_t arrayofLCDPinConfig [11];
+#elif (LCD_DATA_BITS_MODE == LCD_FOUR_BITS_MODE)
+extern LCD_strLCDPinConfig_t arrayofLCDPinConfig [7];
+#endif
+
+
+
+/************************************************************************************/
+/*									Macros Declaration								*/
+/************************************************************************************/
+
+
 #define LCD_CGRAM_START_ADDRESS		0x40
 #define LCD_DDRAM_START_ADDRESS		0x80
 
 #define LCD_TWO_LINES_FOUR_BITS_MODE_INIT1		0x33
 #define LCD_TWO_LINES_FOUR_BITS_MODE_INIT2		0x32
 
+#define REMAINING_STAGES_4_BIT_MODE_CASE		9
+#define REMAINING_STAGES_8_BIT_MODE_CASE		6
 
-/****************************************************************************************/
-/*									APIs Implementation									*/
-/****************************************************************************************/
+
+
+/************************************************************************************/
+/*							User-defined types Declaration							*/
+/************************************************************************************/
+
+
+typedef struct{
+	uint8_t* string;
+	uint8_t state;
+	uint8_t type;
+	uint8_t cursorLocation;
+}request_t;
+
+
+typedef struct{
+	void (*callBack)(void);
+}process_t;
+
+
+/* The possible states of the LCD */
+enum{
+	stateOff,
+	stateInitialization,
+	stateOperational
+};
+
+/* The possible states for this driver,
+ * - ready means We are ready to receive a new request from the user
+ * - busy means We aren't ready for a new request from the user */
+enum{
+	readyForRequest,
+	busyWithRequest
+};
+
+/* The possible requests' types */
+enum{
+	NULL,
+	reqClearScreen,
+	reqSetCursor,
+	reqWriteString
+};
+
+
+
+/************************************************************************************/
+/*								Variables's Declaration								*/
+/************************************************************************************/
+
+
+uint8_t lcdState = stateOff;
+
+request_t userReq;
+
+process_t writeProc;
+
+process_t clearProc;
+
+process_t setCursorProc;
+
+process_t initProc;
+
+
+
+/************************************************************************************/
+/*							Static Functions' Implementation						*/
+/************************************************************************************/
+
 
 /**
- *@brief : Function to Set the pins to which the LCD is connected to, and to initialize the LCD.
- *@param : void.
- *@return: Error State.
+ *@brief : Process that writes a command on the data bus.
+ *@param : A command.
+ *@return: void.
  */
-LCD_enumError_t LCD_enumInit(void)
-{
-	/* A local variable to assign the error state inside it and use only one return in the whole function
-	 * through returning the value of this local variable.
-	 * Initially we assume that everything is OK, if not its value will be changed according to a definite error type */
-	LCD_enumError_t LOC_enumErrorState = LCD_enumOk;
+static void LCD_writeCommandSM(uint8_t Copy_uint8Command){
+	static uint8_t entryCounter = 0;
+	entryCounter++;
 
-	if (arrayofLCDPinConfig == NULL_PTR)
-	{
-		LOC_enumErrorState = LCD_enumNullPointer;
-	}
-	else
-	{
-		uint8_t LOC_uint8counter;
-		PORT_strPinConfig_t LOC_LCDPinConfig;
-
-#if (LCD_DATA_BITS_MODE == LCD_FOUR_BITS_MODE)
-
-		/* Setting the pins as an output low pins */
-		for(LOC_uint8counter = D4_4BITMODE; LOC_uint8counter <= E_4BITMODE; LOC_uint8counter++)
-		{
-			LOC_LCDPinConfig.port_number = arrayofLCDPinConfig[LOC_uint8counter].LCD_port_number;
-			LOC_LCDPinConfig.pin_number = arrayofLCDPinConfig[LOC_uint8counter].LCD_pin_number;
-			LOC_LCDPinConfig.configuration_type = PORT_enumPinOutputLow;
-
-			LOC_enumErrorState = PORT_enumSetPinConfig(&LOC_LCDPinConfig);
-
-			/* Check that every pin is configured without any problem */
-			if (LOC_enumErrorState == PORT_enumOk)
-			{
-				/* Since everything is OK, then continue */
-			}
-			else
-			{
-				/* Seems that something wrong happened during the configurations of one of the pins */
-				LOC_enumErrorState = LCD_enumWrongPinConfiguration;
-				break;
-			}
-		}
-
-		/* Delay for 30 milliseconds after the power on */
-		DIO_DelayMs(30);
-
-		/* These two commands are written in the data sheet */
-		LCD_enumWriteCommand(LCD_TWO_LINES_FOUR_BITS_MODE_INIT1);
-		DIO_DelayMs(5);
-		LCD_enumWriteCommand(LCD_TWO_LINES_FOUR_BITS_MODE_INIT2);
-		DIO_DelayMs(1);
-
-		/* Function Set */
-		/* use 2-lines LCD + 4-bits Data Mode + 5x7 dot display Mode */
-		LCD_enumWriteCommand(LCD_FourBitMode_2LineDisplay_5x7);
-		DIO_DelayMs(1);
-
-		/* Display ON/OFF Control */
-		/* Turn the display ON, turn the cursor ON, and turn the blinking on */
-		LCD_enumWriteCommand(LCD_DisplayON_CursorON_BlinkON);
-		DIO_DelayMs(1);
-
-		/* Display Clear */
-		LCD_enumWriteCommand(LCD_ClearDisplay);
-		DIO_DelayMs(2);
-
-		/* Entry Mode Set */
-		LCD_enumWriteCommand(LCD_EntryMode_CursorIncrement_ShiftOFF);
-
-		/* End of the software initialization */
-
-
-#elif (LCD_DATA_BITS_MODE == LCD_EIGHT_BITS_MODE)
-
-
-		/* Setting the pins as an output low pins */
-		for(LOC_uint8counter = D0; LOC_uint8counter <= E; LOC_uint8counter++)
-		{
-			LOC_LCDPinConfig.port_number = arrayofLCDPinConfig[LOC_uint8counter].LCD_port_number;
-			LOC_LCDPinConfig.pin_number = arrayofLCDPinConfig[LOC_uint8counter].LCD_pin_number;
-			LOC_LCDPinConfig.configuration_type = PORT_enumPinOutputLow;
-
-			LOC_enumErrorState = PORT_enumSetPinConfig(&LOC_LCDPinConfig);
-
-			/* Check that every pin is configured without any problem */
-			if (LOC_enumErrorState == PORT_enumOk)
-			{
-				/* Since everything is OK, then continue */
-			}
-			else
-			{
-				/* Seems that something wrong happened during the configurations of one of the pins */
-				LOC_enumErrorState = LCD_enumWrongPinConfiguration;
-				break;
-			}
-		}
-
-		/* Delay for 30 milliseconds after the power on */
-		DIO_DelayMs(30);
-
-		/* Function Set */
-		/* use 2-lines LCD + 8-bits Data Mode + 5x7 dot display Mode */
-		LCD_enumWriteCommand(LCD_EightBitMode_2LineDisplay_5x7);
-		DIO_DelayMs(1);
-
-		/* Display ON/OFF Control */
-		/* Turn the display ON, turn the cursor ON, and turn the blinking on */
-		LCD_enumWriteCommand(LCD_DisplayON_CursorON_BlinkON);
-		DIO_DelayMs(1);
-
-		/* Display Clear */
-		LCD_enumWriteCommand(LCD_ClearDisplay);
-		DIO_DelayMs(2);
-
-		/* Entry Mode Set */
-		LCD_enumWriteCommand(LCD_EntryMode_CursorIncrement_ShiftOFF);
-
-		/* End of the software initialization */
-
-#endif /* #if (LCD_DATA_BITS_MODE == LCD_FOUR_BITS_MODE) */
-
-	}
-
-	return LOC_enumErrorState;
-}
-/****************************************************************************************/
-/****************************************************************************************/
-/**
- *@brief : Function to Write data to the LCD.
- *@param : Data you want to send.
- *@return: Error State.
- */
-LCD_enumError_t LCD_enumWriteData(uint8 Copy_uint8Data)
-{
-	/* A local variable to assign the error state inside it and use only one return in the whole function
-	 * through returning the value of this local variable.
-	 * Initially we assume that everything is OK, if not its value will be changed according to a definite error type */
-	LCD_enumError_t LOC_enumErrorState = LCD_enumOk;
-
-
-
-#if (LCD_DATA_BITS_MODE == LCD_FOUR_BITS_MODE)
+	switch(entryCounter){
 
 	/* Set the value of RS pin as output low as we are sending a command */
-	LOC_enumErrorState = DIO_enumSetPin(arrayofLCDPinConfig[RS_4BITMODE].LCD_port_number,arrayofLCDPinConfig[RS_4BITMODE].LCD_pin_number,DIO_enumPinLogicHigh);
-
-	/* Check that the pin configuration is done properly */
-	if (LOC_enumErrorState == DIO_enumOk)
-	{
-		/* Small delay mentioned in the data sheet */
-		DIO_DelayMs(1);
-
+	case 1:
+		GPIO_enuSetPinVal(arrayofLCDPinConfig[RS_4BITMODE].LCD_port_number,\
+				arrayofLCDPinConfig[RS_4BITMODE].LCD_pin_number,\
+				GPIO_PIN_VAL_LOW);
+		break;
 		/* Set the value of R/w pin as output low as we are writing */
-		LOC_enumErrorState = DIO_enumSetPin(arrayofLCDPinConfig[RW_4BITMODE].LCD_port_number,arrayofLCDPinConfig[RW_4BITMODE].LCD_pin_number,DIO_enumPinLogicLow);
+	case 2:
+		GPIO_enuSetPinVal(arrayofLCDPinConfig[RW_4BITMODE].LCD_port_number,\
+				arrayofLCDPinConfig[RW_4BITMODE].LCD_pin_number,\
+				GPIO_PIN_VAL_LOW);
+		break;
+		/* Set the value of the E pin to be output low to make pulse on it later once we
+		 * put the data on the data pins */
+	case 3:
+		GPIO_enuSetPinVal(arrayofLCDPinConfig[E_4BITMODE].LCD_port_number,\
+				arrayofLCDPinConfig[E_4BITMODE].LCD_pin_number,\
+				GPIO_PIN_VAL_LOW);
+		break;
 
-		/* Check that the pin configuration is done properly */
-		if (LOC_enumErrorState == DIO_enumOk)
-		{
-			/* Small delay mentioned in the data sheet */
-			DIO_DelayMs(1);
+#if (LCD_DATA_BITS_MODE == LCD_FOUR_BITS_MODE)
 
-			/* Set the value of the E pin to be output low to make pulse on it later once we put the data on the data pins */
-			LOC_enumErrorState = DIO_enumSetPin(arrayofLCDPinConfig[E_4BITMODE].LCD_port_number,arrayofLCDPinConfig[E_4BITMODE].LCD_pin_number,DIO_enumPinLogicLow);
+		/* Putting the upper 4-bits data on the data pins of the LCD */
+	case 4:
+		GPIO_enuSetPinVal(arrayofLCDPinConfig[D7_4BITMODE].LCD_port_number,\
+				arrayofLCDPinConfig[D7_4BITMODE].LCD_pin_number,\
+				( ( Copy_uint8Command & (1<<D7) ) >> D7 ));
+		GPIO_enuSetPinVal(arrayofLCDPinConfig[D6_4BITMODE].LCD_port_number,\
+				arrayofLCDPinConfig[D6_4BITMODE].LCD_pin_number,\
+				( ( Copy_uint8Command & (1<<D6) ) >> D6 ));
+		GPIO_enuSetPinVal(arrayofLCDPinConfig[D5_4BITMODE].LCD_port_number,\
+				arrayofLCDPinConfig[D5_4BITMODE].LCD_pin_number,\
+				( ( Copy_uint8Command & (1<<D5) ) >> D5 ));
+		GPIO_enuSetPinVal(arrayofLCDPinConfig[D4_4BITMODE].LCD_port_number,\
+				arrayofLCDPinConfig[D4_4BITMODE].LCD_pin_number,\
+				( ( Copy_uint8Command & (1<<D4) ) >> D4 ));
+		break;
+		/* Send a pulse to the E pin to send the data to the LCD */
+		/* Set the value of the E pin to be output high */
+	case 5:
+		GPIO_enuSetPinVal(arrayofLCDPinConfig[E_4BITMODE].LCD_port_number,\
+				arrayofLCDPinConfig[E_4BITMODE].LCD_pin_number,\
+				GPIO_PIN_VAL_HIGH);
+		break;
+		/* Set the value of the E pin to be output low */
+	case 6:
+		GPIO_enuSetPinVal(arrayofLCDPinConfig[E_4BITMODE].LCD_port_number,\
+				arrayofLCDPinConfig[E_4BITMODE].LCD_pin_number,\
+				GPIO_PIN_VAL_LOW);
+		break;
+		/* Putting the lower 4-bits data on the data pins of the LCD */
+	case 7:
+		GPIO_enuSetPinVal(arrayofLCDPinConfig[D7_4BITMODE].LCD_port_number,\
+				arrayofLCDPinConfig[D7_4BITMODE].LCD_pin_number,\
+				( ( Copy_uint8Command & (1<<D3) ) >> D3 ));
+		GPIO_enuSetPinVal(arrayofLCDPinConfig[D6_4BITMODE].LCD_port_number,\
+				arrayofLCDPinConfig[D6_4BITMODE].LCD_pin_number,\
+				( ( Copy_uint8Command & (1<<D2) ) >> D2 ));
+		GPIO_enuSetPinVal(arrayofLCDPinConfig[D5_4BITMODE].LCD_port_number,\
+				arrayofLCDPinConfig[D5_4BITMODE].LCD_pin_number,\
+				( ( Copy_uint8Command & (1<<D1) ) >> D1 ));
+		GPIO_enuSetPinVal(arrayofLCDPinConfig[D4_4BITMODE].LCD_port_number,\
+				arrayofLCDPinConfig[D4_4BITMODE].LCD_pin_number,\
+				( ( Copy_uint8Command & (1<<D0) ) >> D0 ));
+		break;
+		/* Send a pulse to the E pin to send the data to the LCD */
+		/* Set the value of the E pin to be output high */
+	case 8:
+		GPIO_enuSetPinVal(arrayofLCDPinConfig[E_4BITMODE].LCD_port_number,\
+				arrayofLCDPinConfig[E_4BITMODE].LCD_pin_number,\
+				GPIO_PIN_VAL_HIGH);
+		break;
+		/* Set the value of the E pin to be output low */
+	case 9:
+		GPIO_enuSetPinVal(arrayofLCDPinConfig[E_4BITMODE].LCD_port_number,\
+				arrayofLCDPinConfig[E_4BITMODE].LCD_pin_number,\
+				GPIO_PIN_VAL_LOW);
 
-			/* Check that the pin configuration is done properly */
-			if (LOC_enumErrorState == DIO_enumOk)
-			{
-				/* Small delay mentioned in the data sheet */
-				DIO_DelayMs(1);
-
-				/* Putting the upper 4-bits data on the data pins of the LCD */
-				LOC_enumErrorState = DIO_enumSetPin(arrayofLCDPinConfig[D7_4BITMODE].LCD_port_number,arrayofLCDPinConfig[D7_4BITMODE].LCD_pin_number,( ( Copy_uint8Data & (1<<D7) ) >> D7 ));
-
-				/* Check that the pin configuration is done properly */
-				if (LOC_enumErrorState == DIO_enumOk)
-				{
-					LOC_enumErrorState = DIO_enumSetPin(arrayofLCDPinConfig[D6_4BITMODE].LCD_port_number,arrayofLCDPinConfig[D6_4BITMODE].LCD_pin_number,( ( Copy_uint8Data & (1<<D6) ) >> D6 ));
-
-					/* Check that the pin configuration is done properly */
-					if (LOC_enumErrorState == DIO_enumOk)
-					{
-						LOC_enumErrorState = DIO_enumSetPin(arrayofLCDPinConfig[D5_4BITMODE].LCD_port_number,arrayofLCDPinConfig[D5_4BITMODE].LCD_pin_number,( ( Copy_uint8Data & (1<<D5) ) >> D5 ));
-
-						/* Check that the pin configuration is done properly */
-						if (LOC_enumErrorState == DIO_enumOk)
-						{
-							LOC_enumErrorState = DIO_enumSetPin(arrayofLCDPinConfig[D4_4BITMODE].LCD_port_number,arrayofLCDPinConfig[D4_4BITMODE].LCD_pin_number,( ( Copy_uint8Data & (1<<D4) ) >> D4 ));
-
-							/* Check that the pin configuration is done properly */
-							if (LOC_enumErrorState == DIO_enumOk)
-							{
-								/* ٍSmall delay mentioned in the data sheet */
-								DIO_DelayMs(1);
-
-								/* Send a pulse to the E pin to send the data to the LCD */
-								LOC_enumErrorState = DIO_enumSetPin(arrayofLCDPinConfig[E_4BITMODE].LCD_port_number,arrayofLCDPinConfig[E_4BITMODE].LCD_pin_number,DIO_enumPinLogicHigh);
-
-								/* Check that the pin configuration is done properly */
-								if (LOC_enumErrorState == DIO_enumOk)
-								{
-									/* ٍSmall delay mentioned in the data sheet */
-									DIO_DelayMs(1);
-
-									/* Send a pulse to the E pin to send the data to the LCD */
-									LOC_enumErrorState = DIO_enumSetPin(arrayofLCDPinConfig[E_4BITMODE].LCD_port_number,arrayofLCDPinConfig[E_4BITMODE].LCD_pin_number,DIO_enumPinLogicLow);
-
-									/* Check that the pin configuration is done properly */
-									if (LOC_enumErrorState == DIO_enumOk)
-									{
-										/* ٍSmall delay mentioned in the data sheet */
-										DIO_DelayMs(1);
-////
-										/* Putting the lower 4-bits data on the data pins of the LCD */
-										LOC_enumErrorState = DIO_enumSetPin(arrayofLCDPinConfig[D7_4BITMODE].LCD_port_number,arrayofLCDPinConfig[D7_4BITMODE].LCD_pin_number,( ( Copy_uint8Data & (1<<D3) ) >> D3 ));
-
-										/* Check that the pin configuration is done properly */
-										if (LOC_enumErrorState == DIO_enumOk)
-										{
-											LOC_enumErrorState = DIO_enumSetPin(arrayofLCDPinConfig[D6_4BITMODE].LCD_port_number,arrayofLCDPinConfig[D6_4BITMODE].LCD_pin_number,( ( Copy_uint8Data & (1<<D2) ) >> D2 ));
-
-											/* Check that the pin configuration is done properly */
-											if (LOC_enumErrorState == DIO_enumOk)
-											{
-												LOC_enumErrorState = DIO_enumSetPin(arrayofLCDPinConfig[D5_4BITMODE].LCD_port_number,arrayofLCDPinConfig[D5_4BITMODE].LCD_pin_number,( ( Copy_uint8Data & (1<<D1) ) >> D1 ));
-
-												/* Check that the pin configuration is done properly */
-												if (LOC_enumErrorState == DIO_enumOk)
-												{
-													LOC_enumErrorState = DIO_enumSetPin(arrayofLCDPinConfig[D4_4BITMODE].LCD_port_number,arrayofLCDPinConfig[D4_4BITMODE].LCD_pin_number,( ( Copy_uint8Data & (1<<D0) ) >> D0 ));
-
-													/* Check that the pin configuration is done properly */
-													if (LOC_enumErrorState == DIO_enumOk)
-													{
-														/* ٍSmall delay mentioned in the data sheet */
-														DIO_DelayMs(1);
-
-														/* Send a pulse to the E pin to send the data to the LCD */
-														LOC_enumErrorState = DIO_enumSetPin(arrayofLCDPinConfig[E_4BITMODE].LCD_port_number,arrayofLCDPinConfig[E_4BITMODE].LCD_pin_number,DIO_enumPinLogicHigh);
-
-														/* Check that the pin configuration is done properly */
-														if (LOC_enumErrorState == DIO_enumOk)
-														{
-															/* ٍSmall delay mentioned in the data sheet */
-															DIO_DelayMs(1);
-
-															/* Send a pulse to the E pin to send the data to the LCD */
-															LOC_enumErrorState = DIO_enumSetPin(arrayofLCDPinConfig[E_4BITMODE].LCD_port_number,arrayofLCDPinConfig[E_4BITMODE].LCD_pin_number,DIO_enumPinLogicLow);
-
-															/* Check that the pin configuration is done properly */
-															if (LOC_enumErrorState == DIO_enumOk)
-															{
-																/* ٍSmall delay mentioned in the data sheet */
-																DIO_DelayMs(1);
-
-/////////////////////////////////////////////////
-
-															}
-															else
-															{
-																/* Seems Like wrong pin configuration happened */
-																LOC_enumErrorState = LCD_enumWrongPinConfiguration;
-															}
-
-														}
-														else
-														{
-															/* Seems Like wrong pin configuration happened */
-															LOC_enumErrorState = LCD_enumWrongPinConfiguration;
-														}
-///
-													}
-													else
-													{
-														/* Seems Like wrong pin configuration happened */
-														LOC_enumErrorState = LCD_enumWrongPinConfiguration;
-													}
-
-												}
-												else
-												{
-													/* Seems Like wrong pin configuration happened */
-													LOC_enumErrorState = LCD_enumWrongPinConfiguration;
-												}
-
-											}
-											else
-											{
-												/* Seems Like wrong pin configuration happened */
-												LOC_enumErrorState = LCD_enumWrongPinConfiguration;
-											}
-
-										}
-										else
-										{
-											/* Seems Like wrong pin configuration happened */
-											LOC_enumErrorState = LCD_enumWrongPinConfiguration;
-										}
-
-									}
-									else
-									{
-										/* Seems Like wrong pin configuration happened */
-										LOC_enumErrorState = LCD_enumWrongPinConfiguration;
-									}
-
-								}
-								else
-								{
-									/* Seems Like wrong pin configuration happened */
-									LOC_enumErrorState = LCD_enumWrongPinConfiguration;
-								}
-
-							}
-							else
-							{
-								/* Seems Like wrong pin configuration happened */
-								LOC_enumErrorState = LCD_enumWrongPinConfiguration;
-							}
-
-						}
-						else
-						{
-							/* Seems Like wrong pin configuration happened */
-							LOC_enumErrorState = LCD_enumWrongPinConfiguration;
-						}
-
-					}
-					else
-					{
-						/* Seems Like wrong pin configuration happened */
-						LOC_enumErrorState = LCD_enumWrongPinConfiguration;
-					}
-
-				}
-				else
-				{
-					/* Seems Like wrong pin configuration happened */
-					LOC_enumErrorState = LCD_enumWrongPinConfiguration;
-				}
+		entryCounter = 0;
+		break;
 
 
 #elif (LCD_DATA_BITS_MODE == LCD_EIGHT_BITS_MODE)
 
+		/* Putting the data on the data pins of the LCD */
+	case 4:
+		GPIO_enuSetPinVal(arrayofLCDPinConfig[D7].LCD_port_number,\
+				arrayofLCDPinConfig[D7].LCD_pin_number,\
+				( ( Copy_uint8Command & (1<<D7) ) >> D7 ));
+		GPIO_enuSetPinVal(arrayofLCDPinConfig[D6].LCD_port_number,\
+				arrayofLCDPinConfig[D6].LCD_pin_number,\
+				( ( Copy_uint8Command & (1<<D6) ) >> D6 ));
+		GPIO_enuSetPinVal(arrayofLCDPinConfig[D5].LCD_port_number,\
+				arrayofLCDPinConfig[D5].LCD_pin_number,\
+				( ( Copy_uint8Command & (1<<D5) ) >> D5 ));
+		GPIO_enuSetPinVal(arrayofLCDPinConfig[D4].LCD_port_number,\
+				arrayofLCDPinConfig[D4].LCD_pin_number,\
+				( ( Copy_uint8Command & (1<<D4) ) >> D4 ));
+		GPIO_enuSetPinVal(arrayofLCDPinConfig[D3].LCD_port_number,\
+				arrayofLCDPinConfig[D3].LCD_pin_number,\
+				( ( Copy_uint8Command & (1<<D3) ) >> D3 ));
+		GPIO_enuSetPinVal(arrayofLCDPinConfig[D2].LCD_port_number,\
+				arrayofLCDPinConfig[D2].LCD_pin_number,\
+				( ( Copy_uint8Command & (1<<D2) ) >> D2 ));
+		GPIO_enuSetPinVal(arrayofLCDPinConfig[D1].LCD_port_number,\
+				arrayofLCDPinConfig[D1].LCD_pin_number,\
+				( ( Copy_uint8Command & (1<<D1) ) >> D1 ));
+		GPIO_enuSetPinVal(arrayofLCDPinConfig[D0].LCD_port_number,\
+				arrayofLCDPinConfig[D0].LCD_pin_number,\
+				( ( Copy_uint8Command & (1<<D0) ) >> D0 ));
+		break;
+		/* Send a pulse to the E pin to send the data to the LCD */
+		/* Set the value of the E pin to be output high */
+	case 5:
+		GPIO_enuSetPinVal(arrayofLCDPinConfig[E_4BITMODE].LCD_port_number,\
+				arrayofLCDPinConfig[E_4BITMODE].LCD_pin_number,\
+				GPIO_PIN_VAL_HIGH);
+		break;
+		/* Set the value of the E pin to be output low */
+	case 6:
+		GPIO_enuSetPinVal(arrayofLCDPinConfig[E_4BITMODE].LCD_port_number,\
+				arrayofLCDPinConfig[E_4BITMODE].LCD_pin_number,\
+				GPIO_PIN_VAL_LOW);
 
-				/* Set the value of RS pin as output low as we are sending a command */
-				LOC_enumErrorState = DIO_enumSetPin(arrayofLCDPinConfig[RS].LCD_port_number,arrayofLCDPinConfig[RS].LCD_pin_number,DIO_enumPinLogicHigh);
-
-				/* Check that the pin configuration is done properly */
-				if (LOC_enumErrorState == DIO_enumOk)
-				{
-					/* Small delay mentioned in the data sheet */
-					DIO_DelayMs(1);
-
-					/* Set the value of R/w pin as output low as we are writing */
-					LOC_enumErrorState = DIO_enumSetPin(arrayofLCDPinConfig[RW].LCD_port_number,arrayofLCDPinConfig[RW].LCD_pin_number,DIO_enumPinLogicLow);
-
-					/* Check that the pin configuration is done properly */
-					if (LOC_enumErrorState == DIO_enumOk)
-					{
-						/* Small delay mentioned in the data sheet */
-						DIO_DelayMs(1);
-
-						/* Set the value of the E pin to be output low to make pulse on it later once we put the data on the data pins */
-						LOC_enumErrorState = DIO_enumSetPin(arrayofLCDPinConfig[E].LCD_port_number,arrayofLCDPinConfig[E].LCD_pin_number,DIO_enumPinLogicLow);
-
-						/* Check that the pin configuration is done properly */
-						if (LOC_enumErrorState == DIO_enumOk)
-						{
-							/* Small delay mentioned in the data sheet */
-							DIO_DelayMs(1);
-				/* Putting the upper 4-bits data on the data pins of the LCD */
-				LOC_enumErrorState = DIO_enumSetPin(arrayofLCDPinConfig[D7].LCD_port_number,arrayofLCDPinConfig[D7].LCD_pin_number,( ( Copy_uint8Data & (1<<D7) ) >> D7 ));
-
-				/* Check that the pin configuration is done properly */
-				if (LOC_enumErrorState == DIO_enumOk)
-				{
-					LOC_enumErrorState = DIO_enumSetPin(arrayofLCDPinConfig[D6].LCD_port_number,arrayofLCDPinConfig[D6].LCD_pin_number,( ( Copy_uint8Data & (1<<D6) ) >> D6 ));
-
-					/* Check that the pin configuration is done properly */
-					if (LOC_enumErrorState == DIO_enumOk)
-					{
-						LOC_enumErrorState = DIO_enumSetPin(arrayofLCDPinConfig[D5].LCD_port_number,arrayofLCDPinConfig[D5].LCD_pin_number,( ( Copy_uint8Data & (1<<D5) ) >> D5 ));
-
-						/* Check that the pin configuration is done properly */
-						if (LOC_enumErrorState == DIO_enumOk)
-						{
-							LOC_enumErrorState = DIO_enumSetPin(arrayofLCDPinConfig[D4].LCD_port_number,arrayofLCDPinConfig[D4].LCD_pin_number,( ( Copy_uint8Data & (1<<D4) ) >> D4 ));
-
-							/* Check that the pin configuration is done properly */
-							if (LOC_enumErrorState == DIO_enumOk)
-							{
-								LOC_enumErrorState = DIO_enumSetPin(arrayofLCDPinConfig[D3].LCD_port_number,arrayofLCDPinConfig[D3].LCD_pin_number,( ( Copy_uint8Data & (1<<D3) ) >> D3 ));
-
-								/* Check that the pin configuration is done properly */
-								if (LOC_enumErrorState == DIO_enumOk)
-								{
-									LOC_enumErrorState = DIO_enumSetPin(arrayofLCDPinConfig[D2].LCD_port_number,arrayofLCDPinConfig[D2].LCD_pin_number,( ( Copy_uint8Data & (1<<D2) ) >> D2 ));
-
-									/* Check that the pin configuration is done properly */
-									if (LOC_enumErrorState == DIO_enumOk)
-									{
-										LOC_enumErrorState = DIO_enumSetPin(arrayofLCDPinConfig[D1].LCD_port_number,arrayofLCDPinConfig[D1].LCD_pin_number,( ( Copy_uint8Data & (1<<D1) ) >> D1 ));
-
-										/* Check that the pin configuration is done properly */
-										if (LOC_enumErrorState == DIO_enumOk)
-										{
-											LOC_enumErrorState = DIO_enumSetPin(arrayofLCDPinConfig[D0].LCD_port_number,arrayofLCDPinConfig[D0].LCD_pin_number,( ( Copy_uint8Data & (1<<D0) ) >> D0 ));
-
-											/* Check that the pin configuration is done properly */
-											if (LOC_enumErrorState == DIO_enumOk)
-											{
-
-												/* ٍSmall delay mentioned in the data sheet */
-												DIO_DelayMs(1);
-
-												/* Send a pulse to the E pin to send the data to the LCD */
-												LOC_enumErrorState = DIO_enumSetPin(arrayofLCDPinConfig[E].LCD_port_number,arrayofLCDPinConfig[E].LCD_pin_number,DIO_enumPinLogicHigh);
-
-												/* Check that the pin configuration is done properly */
-												if (LOC_enumErrorState == DIO_enumOk)
-												{
-													/* ٍSmall delay mentioned in the data sheet */
-													DIO_DelayMs(1);
-
-													/* Send a pulse to the E pin to send the data to the LCD */
-													LOC_enumErrorState = DIO_enumSetPin(arrayofLCDPinConfig[E].LCD_port_number,arrayofLCDPinConfig[E].LCD_pin_number,DIO_enumPinLogicLow);
-
-													/* Check that the pin configuration is done properly */
-													if (LOC_enumErrorState == DIO_enumOk)
-													{
-														/* ٍSmall delay mentioned in the data sheet */
-														DIO_DelayMs(1);
-													}
-													else
-													{
-														/* Seems Like wrong pin configuration happened */
-														LOC_enumErrorState = LCD_enumWrongPinConfiguration;
-													}
-												}
-												else
-												{
-													/* Seems Like wrong pin configuration happened */
-													LOC_enumErrorState = LCD_enumWrongPinConfiguration;
-												}
-											}
-											else
-											{
-												/* Seems Like wrong pin configuration happened */
-												LOC_enumErrorState = LCD_enumWrongPinConfiguration;
-											}
-										}
-										else
-										{
-											/* Seems Like wrong pin configuration happened */
-											LOC_enumErrorState = LCD_enumWrongPinConfiguration;
-										}
-									}
-									else
-									{
-										/* Seems Like wrong pin configuration happened */
-										LOC_enumErrorState = LCD_enumWrongPinConfiguration;
-									}
-								}
-								else
-								{
-									/* Seems Like wrong pin configuration happened */
-									LOC_enumErrorState = LCD_enumWrongPinConfiguration;
-								}
-							}
-							else
-							{
-								/* Seems Like wrong pin configuration happened */
-								LOC_enumErrorState = LCD_enumWrongPinConfiguration;
-							}
-						}
-						else
-						{
-							/* Seems Like wrong pin configuration happened */
-							LOC_enumErrorState = LCD_enumWrongPinConfiguration;
-						}
-					}
-					else
-					{
-						/* Seems Like wrong pin configuration happened */
-						LOC_enumErrorState = LCD_enumWrongPinConfiguration;
-					}
-				}
-				else
-				{
-					/* Seems Like wrong pin configuration happened */
-					LOC_enumErrorState = LCD_enumWrongPinConfiguration;
-				}
+		entryCounter = 0;
+		break;
 
 #endif /* #if (LCD_DATA_BITS_MODE == LCD_FOUR_BITS_MODE) */
 
-			}
-			else
-			{
-				/* Seems Like wrong pin configuration happened */
-				LOC_enumErrorState = LCD_enumWrongPinConfiguration;
-			}
-
-		}
-		else
-		{
-			/* Seems Like wrong pin configuration happened */
-			LOC_enumErrorState = LCD_enumWrongPinConfiguration;
-		}
-
+	default:
+		/* Do Nothing */
+		break;
 	}
-	else
-	{
-		/* Seems Like wrong pin configuration happened */
-		LOC_enumErrorState = LCD_enumWrongPinConfiguration;
-	}
-
-
-	return LOC_enumErrorState;
 }
-/****************************************************************************************/
-/****************************************************************************************/
-/**
- *@brief : Function to Write command to the LCD.
- *@param : Command you want to send.
- *@return: Error State.
- */
-LCD_enumError_t LCD_enumWriteCommand(uint8 Copy_uint8Command)
-{
-	/* A local variable to assign the error state inside it and use only one return in the whole function
-	 * through returning the value of this local variable.
-	 * Initially we assume that everything is OK, if not its value will be changed according to a definite error type */
-	LCD_enumError_t LOC_enumErrorState = LCD_enumOk;
 
+
+/**
+ *@brief : Process that writes a data on the data bus.
+ *@param : A data.
+ *@return: void.
+ */
+static void LCD_writeDataSM(uint8_t Copy_uint8Data){
+	static uint8_t entryCounter = 0;
+	entryCounter++;
+
+	switch(entryCounter){
+
+	/* Set the value of RS pin as output high as we are sending data */
+	case 1:
+		GPIO_enuSetPinVal(arrayofLCDPinConfig[RS_4BITMODE].LCD_port_number,\
+				arrayofLCDPinConfig[RS_4BITMODE].LCD_pin_number,\
+				GPIO_PIN_VAL_HIGH);
+		break;
+		/* Set the value of R/w pin as output low as we are writing */
+	case 2:
+		GPIO_enuSetPinVal(arrayofLCDPinConfig[RW_4BITMODE].LCD_port_number,\
+				arrayofLCDPinConfig[RW_4BITMODE].LCD_pin_number,\
+				GPIO_PIN_VAL_LOW);
+		break;
+		/* Set the value of the E pin to be output low to make pulse on it later once we
+		 * put the data on the data pins */
+	case 3:
+		GPIO_enuSetPinVal(arrayofLCDPinConfig[E_4BITMODE].LCD_port_number,\
+				arrayofLCDPinConfig[E_4BITMODE].LCD_pin_number,\
+				GPIO_PIN_VAL_LOW);
+		break;
+
+#if (LCD_DATA_BITS_MODE == LCD_FOUR_BITS_MODE)
+
+		/* Putting the upper 4-bits data on the data pins of the LCD */
+	case 4:
+		GPIO_enuSetPinVal(arrayofLCDPinConfig[D7_4BITMODE].LCD_port_number,\
+				arrayofLCDPinConfig[D7_4BITMODE].LCD_pin_number,\
+				( ( Copy_uint8Data & (1<<D7) ) >> D7 ));
+		GPIO_enuSetPinVal(arrayofLCDPinConfig[D6_4BITMODE].LCD_port_number,\
+				arrayofLCDPinConfig[D6_4BITMODE].LCD_pin_number,\
+				( ( Copy_uint8Data & (1<<D6) ) >> D6 ));
+		GPIO_enuSetPinVal(arrayofLCDPinConfig[D5_4BITMODE].LCD_port_number,\
+				arrayofLCDPinConfig[D5_4BITMODE].LCD_pin_number,\
+				( ( Copy_uint8Data & (1<<D5) ) >> D5 ));
+		GPIO_enuSetPinVal(arrayofLCDPinConfig[D4_4BITMODE].LCD_port_number,\
+				arrayofLCDPinConfig[D4_4BITMODE].LCD_pin_number,\
+				( ( Copy_uint8Data & (1<<D4) ) >> D4 ));
+		break;
+		/* Send a pulse to the E pin to send the data to the LCD */
+		/* Set the value of the E pin to be output high */
+	case 5:
+		GPIO_enuSetPinVal(arrayofLCDPinConfig[E_4BITMODE].LCD_port_number,\
+				arrayofLCDPinConfig[E_4BITMODE].LCD_pin_number,\
+				GPIO_PIN_VAL_HIGH);
+		break;
+		/* Set the value of the E pin to be output low */
+	case 6:
+		GPIO_enuSetPinVal(arrayofLCDPinConfig[E_4BITMODE].LCD_port_number,\
+				arrayofLCDPinConfig[E_4BITMODE].LCD_pin_number,\
+				GPIO_PIN_VAL_LOW);
+		break;
+		/* Putting the lower 4-bits data on the data pins of the LCD */
+	case 7:
+		GPIO_enuSetPinVal(arrayofLCDPinConfig[D7_4BITMODE].LCD_port_number,\
+				arrayofLCDPinConfig[D7_4BITMODE].LCD_pin_number,\
+				( ( Copy_uint8Data & (1<<D3) ) >> D3 ));
+		GPIO_enuSetPinVal(arrayofLCDPinConfig[D6_4BITMODE].LCD_port_number,\
+				arrayofLCDPinConfig[D6_4BITMODE].LCD_pin_number,\
+				( ( Copy_uint8Data & (1<<D2) ) >> D2 ));
+		GPIO_enuSetPinVal(arrayofLCDPinConfig[D5_4BITMODE].LCD_port_number,\
+				arrayofLCDPinConfig[D5_4BITMODE].LCD_pin_number,\
+				( ( Copy_uint8Data & (1<<D1) ) >> D1 ));
+		GPIO_enuSetPinVal(arrayofLCDPinConfig[D4_4BITMODE].LCD_port_number,\
+				arrayofLCDPinConfig[D4_4BITMODE].LCD_pin_number,\
+				( ( Copy_uint8Data & (1<<D0) ) >> D0 ));
+		break;
+		/* Send a pulse to the E pin to send the data to the LCD */
+		/* Set the value of the E pin to be output high */
+	case 8:
+		GPIO_enuSetPinVal(arrayofLCDPinConfig[E_4BITMODE].LCD_port_number,\
+				arrayofLCDPinConfig[E_4BITMODE].LCD_pin_number,\
+				GPIO_PIN_VAL_HIGH);
+		break;
+		/* Set the value of the E pin to be output low */
+	case 9:
+		GPIO_enuSetPinVal(arrayofLCDPinConfig[E_4BITMODE].LCD_port_number,\
+				arrayofLCDPinConfig[E_4BITMODE].LCD_pin_number,\
+				GPIO_PIN_VAL_LOW);
+
+		entryCounter = 0;
+		break;
+
+
+#elif (LCD_DATA_BITS_MODE == LCD_EIGHT_BITS_MODE)
+
+		/* Putting the data on the data pins of the LCD */
+	case 4:
+		GPIO_enuSetPinVal(arrayofLCDPinConfig[D7].LCD_port_number,\
+				arrayofLCDPinConfig[D7].LCD_pin_number,\
+				( ( Copy_uint8Data & (1<<D7) ) >> D7 ));
+		GPIO_enuSetPinVal(arrayofLCDPinConfig[D6].LCD_port_number,\
+				arrayofLCDPinConfig[D6].LCD_pin_number,\
+				( ( Copy_uint8Data & (1<<D6) ) >> D6 ));
+		GPIO_enuSetPinVal(arrayofLCDPinConfig[D5].LCD_port_number,\
+				arrayofLCDPinConfig[D5].LCD_pin_number,\
+				( ( Copy_uint8Data & (1<<D5) ) >> D5 ));
+		GPIO_enuSetPinVal(arrayofLCDPinConfig[D4].LCD_port_number,\
+				arrayofLCDPinConfig[D4].LCD_pin_number,\
+				( ( Copy_uint8Data & (1<<D4) ) >> D4 ));
+		GPIO_enuSetPinVal(arrayofLCDPinConfig[D3].LCD_port_number,\
+				arrayofLCDPinConfig[D3].LCD_pin_number,\
+				( ( Copy_uint8Data & (1<<D3) ) >> D3 ));
+		GPIO_enuSetPinVal(arrayofLCDPinConfig[D2].LCD_port_number,\
+				arrayofLCDPinConfig[D2].LCD_pin_number,\
+				( ( Copy_uint8Data & (1<<D2) ) >> D2 ));
+		GPIO_enuSetPinVal(arrayofLCDPinConfig[D1].LCD_port_number,\
+				arrayofLCDPinConfig[D1].LCD_pin_number,\
+				( ( Copy_uint8Data & (1<<D1) ) >> D1 ));
+		GPIO_enuSetPinVal(arrayofLCDPinConfig[D0].LCD_port_number,\
+				arrayofLCDPinConfig[D0].LCD_pin_number,\
+				( ( Copy_uint8Data & (1<<D0) ) >> D0 ));
+		break;
+		/* Send a pulse to the E pin to send the data to the LCD */
+		/* Set the value of the E pin to be output high */
+	case 5:
+		GPIO_enuSetPinVal(arrayofLCDPinConfig[E_4BITMODE].LCD_port_number,\
+				arrayofLCDPinConfig[E_4BITMODE].LCD_pin_number,\
+				GPIO_PIN_VAL_HIGH);
+		break;
+		/* Set the value of the E pin to be output low */
+	case 6:
+		GPIO_enuSetPinVal(arrayofLCDPinConfig[E_4BITMODE].LCD_port_number,\
+				arrayofLCDPinConfig[E_4BITMODE].LCD_pin_number,\
+				GPIO_PIN_VAL_LOW);
+
+		entryCounter = 0;
+		break;
+
+#endif /* #if (LCD_DATA_BITS_MODE == LCD_FOUR_BITS_MODE) */
+
+	default:
+		/* Do Nothing */
+		break;
+	}
+}
+
+
+/**
+ *@brief : Process that initializes the LCD.
+ *@param : void.
+ *@return: void.
+ */
+static void LCD_initProcSM(void){
+
+	static uint8_t entryCounter = 0;
+
+#if (LCD_DATA_BITS_MODE == LCD_FOUR_BITS_MODE)
+	static uint8_t writeCommandSM_remainingStages = REMAINING_STAGES_4_BIT_MODE_CASE;
+
+#elif (LCD_DATA_BITS_MODE == LCD_EIGHT_BITS_MODE)
+	static uint8_t writeCommandSM_remainingStages = REMAINING_STAGES_8_BIT_MODE_CASE;
+
+#endif  /* #if (LCD_DATA_BITS_MODE == LCD_FOUR_BITS_MODE) */
+
+	if(entryCounter == 0){
+		entryCounter++;
+	}
+
+	uint8_t LOC_uint8counter;
+	GPIO_strPinConfig_t LOC_LCDPinConfig;
+
+
+	switch(entryCounter){
+
+#if (LCD_DATA_BITS_MODE == LCD_FOUR_BITS_MODE)
+
+	/* Setting the LCD's pins as output low */
+	case 1:
+
+		/* Setting the pins as output low pins */
+		for(LOC_uint8counter = D4_4BITMODE; LOC_uint8counter <= E_4BITMODE; LOC_uint8counter++){
+			/* First enable the GPIOx peripheral to which the current LED is connected */
+			switch (arrayofLCDPinConfig[LOC_uint8counter].LCD_port_number){
+			case GPIO_PORTA:
+				RCC_enuEnableAHB1Peripheral(AHB1_GPIOA);
+				break;
+			case GPIO_PORTB:
+				RCC_enuEnableAHB1Peripheral(AHB1_GPIOB);
+				break;
+			case GPIO_PORTC:
+				RCC_enuEnableAHB1Peripheral(AHB1_GPIOC);
+				break;
+			case GPIO_PORTD:
+				RCC_enuEnableAHB1Peripheral(AHB1_GPIOD);
+				break;
+			case GPIO_PORTE:
+				RCC_enuEnableAHB1Peripheral(AHB1_GPIOE);
+				break;
+			case GPIO_PORTH:
+				RCC_enuEnableAHB1Peripheral(AHB1_GPIOH);
+				break;
+			default:
+				/* The code won't reach here as We already validated the input LED's PORT */
+				break;
+			}
+
+			LOC_LCDPinConfig.GPIO_port = arrayofLCDPinConfig[LOC_uint8counter].LCD_port_number;
+			LOC_LCDPinConfig.GPIO_pin = arrayofLCDPinConfig[LOC_uint8counter].LCD_pin_number;
+			LOC_LCDPinConfig.GPIO_speed = GPIO_SPEED_HIGH;
+			LOC_LCDPinConfig.GPIO_mode = GPIO_MODE_OUTPUT_PP;
+
+			/* Passing the configurations assigned in "LOC_LEDconfig" to the GPIO initialize function
+			 * to initialize the pin */
+			GPIO_enuInitPin(&LOC_LCDPinConfig);
+
+			GPIO_enuSetPinVal(arrayofLCDPinConfig[LOC_uint8counter].LCD_port_number,\
+					arrayofLCDPinConfig[LOC_uint8counter].LCD_pin_number,\
+					GPIO_PIN_VAL_HIGH);
+		}
+
+		entryCounter++;
+		break;
+	case 2:
+	case 3:
+	case 4:
+	case 5:
+	case 6:
+	case 7:
+	case 8:
+	case 9:
+	case 10:
+	case 11:
+	case 12:
+	case 13:
+	case 14:
+	case 15:
+	case 16:
+	case 17:
+	case 18:
+	case 19:
+	case 20:
+	case 21:
+	case 22:
+	case 23:
+	case 24:
+	case 25:
+	case 26:
+	case 27:
+	case 28:
+	case 29:
+	case 30:
+		entryCounter++;
+		break;
+		/* When coming here again, 30 milliseconds will have been passed (Power on), write command */
+	case 31:
+
+		if (writeCommandSM_remainingStages > 0){
+			LCD_writeCommandSM(LCD_TWO_LINES_FOUR_BITS_MODE_INIT1);
+			writeCommandSM_remainingStages--;
+		}
+		else{
+			writeCommandSM_remainingStages = REMAINING_STAGES_4_BIT_MODE_CASE;
+			entryCounter += 5;
+		}
+		break;
+		/* When coming here again 5 milliseconds will have been passed, write command */
+	case 36:
+
+		if (writeCommandSM_remainingStages > 0){
+			LCD_writeCommandSM(LCD_TWO_LINES_FOUR_BITS_MODE_INIT2);
+			writeCommandSM_remainingStages--;
+		}
+		else{
+			writeCommandSM_remainingStages = REMAINING_STAGES_4_BIT_MODE_CASE;
+			entryCounter++;
+		}
+		break;
+		/* Function set stage */
+	case 37:
+		/* use 2-lines LCD + 4-bits Data Mode + 5x7 dot display Mode */
+
+		if (writeCommandSM_remainingStages > 0){
+			LCD_writeCommandSM(LCD_FourBitMode_2LineDisplay_5x7);
+			writeCommandSM_remainingStages--;
+		}
+		else{
+			writeCommandSM_remainingStages = REMAINING_STAGES_4_BIT_MODE_CASE;
+			entryCounter++;
+		}
+		break;
+		/* Display control stage */
+	case 38:
+		/* Turn the display ON, turn the cursor ON, and turn the blinking on */
+
+		if (writeCommandSM_remainingStages > 0){
+			LCD_writeCommandSM(LCD_DisplayON_CursorON_BlinkON);
+			writeCommandSM_remainingStages--;
+		}
+		else{
+			writeCommandSM_remainingStages = REMAINING_STAGES_4_BIT_MODE_CASE;
+			entryCounter++;
+		}
+		break;
+		/* Clear display stage */
+	case 39:
+
+		if (writeCommandSM_remainingStages > 0){
+			LCD_writeCommandSM(LCD_ClearDisplay);
+			writeCommandSM_remainingStages--;
+		}
+		else{
+			writeCommandSM_remainingStages = REMAINING_STAGES_4_BIT_MODE_CASE;
+			entryCounter += 2;
+		}
+		break;
+		/* When coming here again 2 milliseconds will have been passed, enter Entry mode set stage */
+	case 41:
+
+		if (writeCommandSM_remainingStages > 0){
+			LCD_writeCommandSM(LCD_EntryMode_CursorIncrement_ShiftOFF);
+			writeCommandSM_remainingStages--;
+		}
+		else{
+			writeCommandSM_remainingStages = REMAINING_STAGES_4_BIT_MODE_CASE;
+			entryCounter++;
+		}
+		break;
+		/* We reach the end of initialization, change to readyForRequest, enter the stateOperational
+		 * state, and call the passed callback function */
+	case 42:
+		entryCounter = 0;
+		userReq.state = readyForRequest;
+		lcdState = stateOperational;
+		initProc.callBack();
+		break;
+
+#elif (LCD_DATA_BITS_MODE == LCD_EIGHT_BITS_MODE)
+
+		/* Setting the LCD's pins as output low */
+	case 1:
+
+		/* Setting the pins as an output low pins */
+		for(LOC_uint8counter = D0; LOC_uint8counter <= E; LOC_uint8counter++){
+			/* First enable the GPIOx peripheral to which the current LED is connected */
+			switch (arrayofLCDPinConfig[LOC_uint8counter].LCD_port_number){
+			case GPIO_PORTA:
+				RCC_enuEnableAHB1Peripheral(AHB1_GPIOA);
+				break;
+			case GPIO_PORTB:
+				RCC_enuEnableAHB1Peripheral(AHB1_GPIOB);
+				break;
+			case GPIO_PORTC:
+				RCC_enuEnableAHB1Peripheral(AHB1_GPIOC);
+				break;
+			case GPIO_PORTD:
+				RCC_enuEnableAHB1Peripheral(AHB1_GPIOD);
+				break;
+			case GPIO_PORTE:
+				RCC_enuEnableAHB1Peripheral(AHB1_GPIOE);
+				break;
+			case GPIO_PORTH:
+				RCC_enuEnableAHB1Peripheral(AHB1_GPIOH);
+				break;
+			default:
+				/* The code won't reach here as We already validated the input LED's PORT */
+				break;
+			}
+
+			LOC_LCDPinConfig.GPIO_port = arrayofLCDPinConfig[LOC_uint8counter].LCD_port_number;
+			LOC_LCDPinConfig.GPIO_pin = arrayofLCDPinConfig[LOC_uint8counter].LCD_pin_number;
+			LOC_LCDPinConfig.GPIO_speed = GPIO_SPEED_HIGH;
+			LOC_LCDPinConfig.GPIO_mode = GPIO_MODE_OUTPUT_PP;
+
+			/* Passing the configurations assigned in "LOC_LEDconfig" to the GPIO initialize function
+			 * to initialize the pin */
+			GPIO_enuInitPin(&LOC_LCDPinConfig);
+
+			GPIO_enuSetPinVal(arrayofLCDPinConfig[LOC_uint8counter].LCD_port_number,\
+					arrayofLCDPinConfig[LOC_uint8counter].LCD_pin_number,\
+					GPIO_PIN_VAL_HIGH);
+		}
+
+		entryCounter++;
+		break;
+	case 2:
+	case 3:
+	case 4:
+	case 5:
+	case 6:
+	case 7:
+	case 8:
+	case 9:
+	case 10:
+	case 11:
+	case 12:
+	case 13:
+	case 14:
+	case 15:
+	case 16:
+	case 17:
+	case 18:
+	case 19:
+	case 20:
+	case 21:
+	case 22:
+	case 23:
+	case 24:
+	case 25:
+	case 26:
+	case 27:
+	case 28:
+	case 29:
+	case 30:
+		entryCounter++;
+		break;
+		/* When coming here again 30 milliseconds will have been passed (Power on), enter
+		 * Function set stage */
+	case 31:
+		/* use 2-lines LCD + 8-bits Data Mode + 5x7 dot display Mode */
+
+		if (writeCommandSM_remainingStages > 0){
+			LCD_writeCommandSM(LCD_EightBitMode_2LineDisplay_5x7);
+			writeCommandSM_remainingStages--;
+		}
+		else{
+			writeCommandSM_remainingStages = REMAINING_STAGES_8_BIT_MODE_CASE;
+			entryCounter++;
+		}
+		break;
+		/* Display control stage */
+	case 32:
+		/* Turn the display ON, turn the cursor ON, and turn the blinking on */
+
+		if (writeCommandSM_remainingStages > 0){
+			LCD_writeCommandSM(LCD_DisplayON_CursorON_BlinkON);
+			writeCommandSM_remainingStages--;
+		}
+		else{
+			writeCommandSM_remainingStages = REMAINING_STAGES_8_BIT_MODE_CASE;
+			entryCounter++;
+		}
+		break;
+		/* Clear display stage */
+	case 33:
+
+		if (writeCommandSM_remainingStages > 0){
+			LCD_writeCommandSM(LCD_ClearDisplay);
+			writeCommandSM_remainingStages--;
+		}
+		else{
+			writeCommandSM_remainingStages = REMAINING_STAGES_8_BIT_MODE_CASE;
+			entryCounter += 2;
+		}
+		break;
+		/* When coming here again 2 milliseconds will have been passed, enter Entry mode set stage */
+	case 35:
+
+		if (writeCommandSM_remainingStages > 0){
+			LCD_writeCommandSM(LCD_EntryMode_CursorIncrement_ShiftOFF);
+			writeCommandSM_remainingStages--;
+		}
+		else{
+			writeCommandSM_remainingStages = REMAINING_STAGES_8_BIT_MODE_CASE;
+			entryCounter += 2;
+		}
+		break;
+		/* We reach the end of initialization, change to readyForRequest, enter the stateOperational
+		 * state, and call the passed callback function */
+	case 36:
+		entryCounter = 0;
+		userReq.state = readyForRequest;
+		lcdState = stateOperational;
+		initProc.callBack();
+		break;
+
+#endif  /* #if (LCD_DATA_BITS_MODE == LCD_FOUR_BITS_MODE) */
+
+
+	default:
+		/* Do Nothing */
+		break;
+	}
+}
+
+
+/**
+ *@brief : Process that writes one character at a time.
+ *@param : void.
+ *@return: void.
+ */
+static void LCD_writeProc(void){
+	static uint8_t entryCounter = 0;
+
+#if (LCD_DATA_BITS_MODE == LCD_FOUR_BITS_MODE)
+	static uint8_t writeDataSM_remainingStages = REMAINING_STAGES_4_BIT_MODE_CASE;
+
+#elif (LCD_DATA_BITS_MODE == LCD_EIGHT_BITS_MODE)
+	static uint8_t writeDataSM_remainingStages = REMAINING_STAGES_8_BIT_MODE_CASE;
+
+#endif  /* #if (LCD_DATA_BITS_MODE == LCD_FOUR_BITS_MODE) */
+
+#if (LCD_DATA_BITS_MODE == LCD_FOUR_BITS_MODE)
+
+	/* Check if We reached the NULL character or not */
+	if(userReq.string[entryCounter] != '\0'){
+
+		/* Check if We finished all stages of the LCD_writeDataSM or not */
+		if(writeDataSM_remainingStages > 0){
+			LCD_writeDataSM(userReq.string[entryCounter]);
+			writeDataSM_remainingStages--;
+		}
+		else{
+			/* We finished the printing of one character */
+			writeDataSM_remainingStages = REMAINING_STAGES_4_BIT_MODE_CASE;
+			entryCounter++;
+		}
+	}
+	else{
+		/* We finished the Printing of the Whole string */
+		entryCounter = 0;
+		userReq.type = NULL;
+		userReq.state = readyForRequest;
+		writeProc.callBack();
+	}
+
+#elif (LCD_DATA_BITS_MODE == LCD_EIGHT_BITS_MODE)
+
+	/* Check if We reached the NULL character or not */
+	if(userReq.string[entryCounter] != '\0'){
+
+		/* Check if We finished all stages of the LCD_writeDataSM or not */
+		if(writeDataSM_remainingStages > 0){
+			LCD_writeDataSM(userReq.string[entryCounter]);
+			writeDataSM_remainingStages--;
+		}
+		else{
+			/* We finished the printing of one character */
+			writeDataSM_remainingStages = REMAINING_STAGES_8_BIT_MODE_CASE;
+			entryCounter++;
+		}
+	}
+	else{
+		/* We finished the Printing of the Whole string */
+		entryCounter = 0;
+		userReq.type = NULL;
+		userReq.state = readyForRequest;
+		writeProc.callBack();
+	}
+
+#endif  /* #if (LCD_DATA_BITS_MODE == LCD_FOUR_BITS_MODE) */
+
+}
+
+
+/**
+ *@brief : Process that cleans the screen.
+ *@param : void.
+ *@return: void.
+ */
+static void LCD_cleanProc(void){
+
+#if (LCD_DATA_BITS_MODE == LCD_FOUR_BITS_MODE)
+	static uint8_t writeCommandSM_remainingStages = REMAINING_STAGES_4_BIT_MODE_CASE;
+
+#elif (LCD_DATA_BITS_MODE == LCD_EIGHT_BITS_MODE)
+	static uint8_t writeCommandSM_remainingStages = REMAINING_STAGES_8_BIT_MODE_CASE;
+
+#endif  /* #if (LCD_DATA_BITS_MODE == LCD_FOUR_BITS_MODE) */
 
 
 #if (LCD_DATA_BITS_MODE == LCD_FOUR_BITS_MODE)
 
-	/* Set the value of RS pin as output low as we are sending a command */
-	DIO_enumSetPin(arrayofLCDPinConfig[RS_4BITMODE].LCD_port_number,arrayofLCDPinConfig[RS_4BITMODE].LCD_pin_number,DIO_enumPinLogicLow);
-	/* Small delay mentioned in the data sheet */
-	DIO_DelayMs(1);
-
-	/* Set the value of R/w pin as output low as we are writing */
-	DIO_enumSetPin(arrayofLCDPinConfig[RW_4BITMODE].LCD_port_number,arrayofLCDPinConfig[RW_4BITMODE].LCD_pin_number,DIO_enumPinLogicLow);
-	/* Small delay mentioned in the data sheet */
-	DIO_DelayMs(1);
-	/* Set the value of the E pin to be output low to make pulse on it later once we put the data on the data pins */
-	DIO_enumSetPin(arrayofLCDPinConfig[E_4BITMODE].LCD_port_number,arrayofLCDPinConfig[E_4BITMODE].LCD_pin_number,DIO_enumPinLogicLow);
-	/* Small delay mentioned in the data sheet */
-	DIO_DelayMs(1);
-
-	/* Putting the upper 4-bits data on the data pins of the LCD */
-	DIO_enumSetPin(arrayofLCDPinConfig[D7_4BITMODE].LCD_port_number,arrayofLCDPinConfig[D7_4BITMODE].LCD_pin_number,( ( Copy_uint8Command & (1<<D7) ) >> D7 ));
-	DIO_enumSetPin(arrayofLCDPinConfig[D6_4BITMODE].LCD_port_number,arrayofLCDPinConfig[D6_4BITMODE].LCD_pin_number,( ( Copy_uint8Command & (1<<D6) ) >> D6 ));
-	DIO_enumSetPin(arrayofLCDPinConfig[D5_4BITMODE].LCD_port_number,arrayofLCDPinConfig[D5_4BITMODE].LCD_pin_number,( ( Copy_uint8Command & (1<<D5) ) >> D5 ));
-	DIO_enumSetPin(arrayofLCDPinConfig[D4_4BITMODE].LCD_port_number,arrayofLCDPinConfig[D4_4BITMODE].LCD_pin_number,( ( Copy_uint8Command & (1<<D4) ) >> D4 ));
-	/* ٍSmall delay mentioned in the data sheet */
-	DIO_DelayMs(1);
-
-	/* Send a pulse to the E pin to send the data to the LCD */
-	DIO_enumSetPin(arrayofLCDPinConfig[E_4BITMODE].LCD_port_number,arrayofLCDPinConfig[E_4BITMODE].LCD_pin_number,DIO_enumPinLogicHigh);
-	/* Small delay mentioned in the data sheet */
-	DIO_DelayMs(1);
-	DIO_enumSetPin(arrayofLCDPinConfig[E_4BITMODE].LCD_port_number,arrayofLCDPinConfig[E_4BITMODE].LCD_pin_number,DIO_enumPinLogicLow);
-	/* Small delay mentioned in the data sheet */
-	DIO_DelayMs(1);
-
-	/* Putting the lower 4-bits data on the data pins of the LCD */
-	DIO_enumSetPin(arrayofLCDPinConfig[D7_4BITMODE].LCD_port_number,arrayofLCDPinConfig[D7_4BITMODE].LCD_pin_number,( ( Copy_uint8Command & (1<<D3) ) >> D3 ));
-	DIO_enumSetPin(arrayofLCDPinConfig[D6_4BITMODE].LCD_port_number,arrayofLCDPinConfig[D6_4BITMODE].LCD_pin_number,( ( Copy_uint8Command & (1<<D2) ) >> D2 ));
-	DIO_enumSetPin(arrayofLCDPinConfig[D5_4BITMODE].LCD_port_number,arrayofLCDPinConfig[D5_4BITMODE].LCD_pin_number,( ( Copy_uint8Command & (1<<D1) ) >> D1 ));
-	DIO_enumSetPin(arrayofLCDPinConfig[D4_4BITMODE].LCD_port_number,arrayofLCDPinConfig[D4_4BITMODE].LCD_pin_number,( ( Copy_uint8Command & (1<<D0) ) >> D0 ));
-	/* ٍSmall delay mentioned in the data sheet */
-	DIO_DelayMs(1);
-
-	/* Send a pulse to the E pin to send the data to the LCD */
-	DIO_enumSetPin(arrayofLCDPinConfig[E_4BITMODE].LCD_port_number,arrayofLCDPinConfig[E_4BITMODE].LCD_pin_number,DIO_enumPinLogicHigh);
-	/* Small delay mentioned in the data sheet */
-	DIO_DelayMs(1);
-	DIO_enumSetPin(arrayofLCDPinConfig[E_4BITMODE].LCD_port_number,arrayofLCDPinConfig[E_4BITMODE].LCD_pin_number,DIO_enumPinLogicLow);
-	/* Small delay mentioned in the data sheet */
-	DIO_DelayMs(1);
-
+	if(writeCommandSM_remainingStages > 0){
+		LCD_writeCommandSM(LCD_ClearDisplay);
+		writeCommandSM_remainingStages--;
+	}
+	else{
+		/* We finished the printing of one character */
+		writeCommandSM_remainingStages = REMAINING_STAGES_4_BIT_MODE_CASE;
+		userReq.type = NULL;
+		userReq.state = readyForRequest;
+		clearProc.callBack();
+	}
 
 #elif (LCD_DATA_BITS_MODE == LCD_EIGHT_BITS_MODE)
 
-	/* Set the value of RS pin as output low as we are sending a command */
-	DIO_enumSetPin(arrayofLCDPinConfig[RS].LCD_port_number,arrayofLCDPinConfig[RS].LCD_pin_number,DIO_enumPinLogicLow);
-	/* Small delay mentioned in the data sheet */
-	DIO_DelayMs(1);
+	if(writeCommandSM_remainingStages > 0){
+		LCD_writeCommandSM(LCD_ClearDisplay);
+		writeCommandSM_remainingStages--;
+	}
+	else{
+		/* We finished the printing of one character */
+		writeCommandSM_remainingStages = REMAINING_STAGES_4_BIT_MODE_CASE;
+		userReq.type = NULL;
+		userReq.state = readyForRequest;
+		clearProc.callBack();
+	}
 
-	/* Set the value of R/w pin as output low as we are writing */
-	DIO_enumSetPin(arrayofLCDPinConfig[RW].LCD_port_number,arrayofLCDPinConfig[RW].LCD_pin_number,DIO_enumPinLogicLow);
-	/* Small delay mentioned in the data sheet */
-	DIO_DelayMs(1);
-	/* Set the value of the E pin to be output low to make pulse on it later once we put the data on the data pins */
-	DIO_enumSetPin(arrayofLCDPinConfig[E].LCD_port_number,arrayofLCDPinConfig[E].LCD_pin_number,DIO_enumPinLogicLow);
-	/* Small delay mentioned in the data sheet */
-	DIO_DelayMs(1);
+#endif  /* #if (LCD_DATA_BITS_MODE == LCD_FOUR_BITS_MODE) */
 
-	/* Putting the data on the data pins of the LCD */
-	DIO_enumSetPin(arrayofLCDPinConfig[D7].LCD_port_number,arrayofLCDPinConfig[D7].LCD_pin_number,( ( Copy_uint8Command & (1<<D7) ) >> D7 ));
-	DIO_enumSetPin(arrayofLCDPinConfig[D6].LCD_port_number,arrayofLCDPinConfig[D6].LCD_pin_number,( ( Copy_uint8Command & (1<<D6) ) >> D6 ));
-	DIO_enumSetPin(arrayofLCDPinConfig[D5].LCD_port_number,arrayofLCDPinConfig[D5].LCD_pin_number,( ( Copy_uint8Command & (1<<D5) ) >> D5 ));
-	DIO_enumSetPin(arrayofLCDPinConfig[D4].LCD_port_number,arrayofLCDPinConfig[D4].LCD_pin_number,( ( Copy_uint8Command & (1<<D4) ) >> D4 ));
-	DIO_enumSetPin(arrayofLCDPinConfig[D3].LCD_port_number,arrayofLCDPinConfig[D3].LCD_pin_number,( ( Copy_uint8Command & (1<<D3) ) >> D3 ));
-	DIO_enumSetPin(arrayofLCDPinConfig[D2].LCD_port_number,arrayofLCDPinConfig[D2].LCD_pin_number,( ( Copy_uint8Command & (1<<D2) ) >> D2 ));
-	DIO_enumSetPin(arrayofLCDPinConfig[D1].LCD_port_number,arrayofLCDPinConfig[D1].LCD_pin_number,( ( Copy_uint8Command & (1<<D1) ) >> D1 ));
-	DIO_enumSetPin(arrayofLCDPinConfig[D0].LCD_port_number,arrayofLCDPinConfig[D0].LCD_pin_number,( ( Copy_uint8Command & (1<<D0) ) >> D0 ));
-	/* ٍSmall delay mentioned in the data sheet */
-	DIO_DelayMs(1);
-
-	/* Send a pulse to the E pin to send the data to the LCD */
-	DIO_enumSetPin(arrayofLCDPinConfig[E].LCD_port_number,arrayofLCDPinConfig[E].LCD_pin_number,DIO_enumPinLogicHigh);
-	/* Small delay mentioned in the data sheet */
-	DIO_DelayMs(1);
-	DIO_enumSetPin(arrayofLCDPinConfig[E].LCD_port_number,arrayofLCDPinConfig[E].LCD_pin_number,DIO_enumPinLogicLow);
-	/* Small delay mentioned in the data sheet */
-	DIO_DelayMs(1);
-
-
-#endif /* #if (LCD_DATA_BITS_MODE == LCD_FOUR_BITS_MODE) */
-
-
-	return LOC_enumErrorState;
 }
-/****************************************************************************************/
-/****************************************************************************************/
+
+
 /**
- *@brief : Function to go to certain location in the DDRAM.
- *@param : The row number, and the column number in that row.
+ *@brief : Process that set the cursor position.
+ *@param : void.
+ *@return: void.
+ */
+static void LCD_setCursorProc(void){
+
+#if (LCD_DATA_BITS_MODE == LCD_FOUR_BITS_MODE)
+	static uint8_t writeCommandSM_remainingStages = REMAINING_STAGES_4_BIT_MODE_CASE;
+
+#elif (LCD_DATA_BITS_MODE == LCD_EIGHT_BITS_MODE)
+	static uint8_t writeCommandSM_remainingStages = REMAINING_STAGES_8_BIT_MODE_CASE;
+
+#endif  /* #if (LCD_DATA_BITS_MODE == LCD_FOUR_BITS_MODE) */
+
+
+#if (LCD_DATA_BITS_MODE == LCD_FOUR_BITS_MODE)
+
+	if(writeCommandSM_remainingStages > 0){
+		LCD_writeCommandSM(LCD_DDRAM_START_ADDRESS + userReq.cursorLocation);
+		writeCommandSM_remainingStages--;
+	}
+	else{
+		/* We finished the printing of one character */
+		writeCommandSM_remainingStages = REMAINING_STAGES_4_BIT_MODE_CASE;
+		userReq.type = NULL;
+		userReq.state = readyForRequest;
+		setCursorProc.callBack();
+	}
+
+#elif (LCD_DATA_BITS_MODE == LCD_EIGHT_BITS_MODE)
+
+	if(writeCommandSM_remainingStages > 0){
+		LCD_writeCommandSM(LCD_DDRAM_START_ADDRESS + userReq.cursorLocation);
+		writeCommandSM_remainingStages--;
+	}
+	else{
+		/* We finished the printing of one character */
+		writeCommandSM_remainingStages = REMAINING_STAGES_4_BIT_MODE_CASE;
+		userReq.type = NULL;
+		userReq.state = readyForRequest;
+		clearProc.callBack();
+	}
+
+#endif  /* #if (LCD_DATA_BITS_MODE == LCD_FOUR_BITS_MODE) */
+
+}
+
+
+
+/************************************************************************************/
+/*								Functions' Implementation							*/
+/************************************************************************************/
+
+
+/**
+ *@brief : Function that initializes the LCD.
+ *@param : a callback function you want to be called after finishing your request.
  *@return: Error State.
  */
-LCD_enumError_t LCD_enumGotoDDRAM_XY(LCD_enumRowNumber_t Copy_uint8X, LCD_enumColumnNumber_t Copy_uint8Y)
-{
+LCD_enuError_t LCD_enuInitAsync(void (*callBackFn)(void)){
 	/* A local variable to assign the error state inside it and use only one return in the whole function
 	 * through returning the value of this local variable.
-	 * Initially we assume that everything is OK, if not its value will be changed according to a definite error type */
-	LCD_enumError_t LOC_enumErrorState = LCD_enumOk;
+	 * Initially we assume that everything is OK, if not its value will be changed according to a definite
+	 * error type */
+	LCD_enuError_t LOC_enuErrorStatus = LCD_enuOk;
 
-	if ((Copy_uint8X < LCD_enumFirstRow) || (Copy_uint8X > LCD_enumSecondRow))
-	{
-		LOC_enumErrorState = LCD_enumWrongRowNumber;
+	/* Check on the passed pointer if it's a NULL pointer or not */
+	if((callBackFn == NULL_PTR) || (arrayofLCDPinConfig == NULL_PTR)){
+		/* If the passed pointer is a NULL pointer We cannot access it, return an error */
+		LOC_enuErrorStatus = LCD_enuNullPointer;
 	}
-	else if ((Copy_uint8Y < LCD_enumColumn_1) || (Copy_uint8Y > LCD_enumColumn_40))
-	{
-		LOC_enumErrorState = LCD_enumWrongColumnNumber;
+	else if((lcdState == stateOff) && (userReq.state == readyForRequest)){
+		initProc.callBack = callBackFn;
+		userReq.state = busyWithRequest;
+		lcdState = stateInitialization;
 	}
-	else
-	{
-		uint8 LOC_uint8Location;
-		/* Seems like the inputs are correct, then let us go to the required location */
-
-		if (Copy_uint8X == LCD_enumFirstRow)
-		{
-			LOC_uint8Location = Copy_uint8Y;
-		}
-		else
-		{
-			/* Then Copy_uint8X equals LCD_enumSecondRow */
-
-			LOC_uint8Location = 0x40 + Copy_uint8Y;
-		}
-
-		/* Send a command to the LCD to make the cursor go to the required location */
-		LCD_enumWriteCommand(LCD_DDRAM_START_ADDRESS + LOC_uint8Location);
-	}
-
-
-	return LOC_enumErrorState;
-}
-/****************************************************************************************/
-/****************************************************************************************/
-/**
- *@brief : Function to Print certain number on the LCD.
- *@param : Number you want to print.
- *@return: Error State.
- */
-LCD_enumError_t LCD_enumWriteNumber(uint64 Copy_uint64Number)
-{
-	/* A local variable to assign the error state inside it and use only one return in the whole function
-	 * through returning the value of this local variable.
-	 * Initially we assume that everything is OK, if not its value will be changed according to a definite error type */
-	LCD_enumError_t LOC_enumErrorState = LCD_enumOk;
-
-	uint64 LOC_uint64InvertedImage = 0;
-	uint8 LOC_uint8Digit;
-
-	/* Its usage is to check if the unit digit in the input number is zero or not */
-	uint8 LOC_uint8ZeroInUnitsChecker = 0;
-
-	while (Copy_uint64Number != 0)
-	{
-		/* Save an inverted image of the input in a local variable to b able to print it properly */
-		LOC_uint64InvertedImage *= 10;
-		LOC_uint64InvertedImage += Copy_uint64Number % 10;
-
-		/* If the unit digit in the input number is zero then raise the Zero checker flag */
-		if (LOC_uint64InvertedImage == 0)
-		{
-			LOC_uint8ZeroInUnitsChecker = 1;
-		}
-		//LOC_uint64InvertedImage *= 10;
-		Copy_uint64Number /= 10;
-	}
-
-	while (LOC_uint64InvertedImage != 0)
-	{
-		/* Send the inverted number to be printed digit-by-digit */
-		LOC_uint8Digit = LOC_uint64InvertedImage % 10;
-		LCD_enumWriteData(LOC_uint8Digit + 48);
-		LOC_uint64InvertedImage /= 10;
-	}
-
-	/* If the Zero checker flag is set then print Zero as the last thing to be printed */
-	if (LOC_uint8ZeroInUnitsChecker == 1)
-	{
-		LCD_enumWriteData(0 + 48);
-		LOC_uint8ZeroInUnitsChecker = 0;
-	}
-	else
-	{
+	else{
 		/* Do Nothing */
 	}
 
-	return LOC_enumErrorState;
+	return LOC_enuErrorStatus;
 }
-/****************************************************************************************/
-/****************************************************************************************/
+
+
 /**
- *@brief : Function to Print certain string on the LCD.
- *@param : String you want to print, and the length of that string.
+ *@brief : Function that returns to you the current state of the LCD.
+ *@param : pointer inside which We will return to you the state of the LCD.
  *@return: Error State.
  */
-LCD_enumError_t LCD_enumWriteString(uint8* Copy_puint8Pattern)
-{
+LCD_enuError_t LCD_enuGetState(uint8_t* State){
 	/* A local variable to assign the error state inside it and use only one return in the whole function
 	 * through returning the value of this local variable.
-	 * Initially we assume that everything is OK, if not its value will be changed according to a definite error type */
-	LCD_enumError_t LOC_enumErrorState = LCD_enumOk;
+	 * Initially we assume that everything is OK, if not its value will be changed according to a definite
+	 * error type */
+	LCD_enuError_t LOC_enuErrorStatus = LCD_enuOk;
 
-	if (Copy_puint8Pattern == NULL_PTR)
-	{
-		LOC_enumErrorState = LCD_enumNullPointer;
+	/* Check on the passed pointer that it isn't a NULL pointer */
+	if(State == NULL_PTR){
+		/* The passed pointer is a NULL pointer, return an error */
+		LOC_enuErrorStatus = LCD_enuNullPointer;
 	}
-	else
-	{
-		uint8 LOC_uint8Counter = 0;
-		while(Copy_puint8Pattern[LOC_uint8Counter] != '\0')
-		{
-			LCD_enumWriteData(Copy_puint8Pattern[LOC_uint8Counter]);
-			LOC_uint8Counter++;
-		}
+	else{
+		/* Return the current LCD's state */
+		*State = lcdState;
 	}
 
-	return LOC_enumErrorState;
+	return LOC_enuErrorStatus;
 }
-/****************************************************************************************/
-/****************************************************************************************/
+
+
 /**
- *@brief : Function to Save Special character in the CGRAM, and then to print it on the LCD.
- *@param : Special character you want to print, the block number that character will be saved inside in the
- *			CGRAM, then (for the printing purpose) the row and column number in which that character will
- *			be displayed.
+ *@brief : Function that clears the screen.
+ *@param : a callback function you want to be called after finishing your request.
  *@return: Error State.
  */
-LCD_enumError_t LCD_enumDisplaySpecialPattern(uint8* Copy_puint8SpecialChar, LCD_enumBlockNumber_t Copy_uint8CGRAMBlockNumber, LCD_enumRowNumber_t Copy_uint8X, LCD_enumColumnNumber_t Copy_uint8Y)
-{
+LCD_enuError_t LCD_enuClearScreenAsync(void (*callBackFn)(void)){
 	/* A local variable to assign the error state inside it and use only one return in the whole function
 	 * through returning the value of this local variable.
-	 * Initially we assume that everything is OK, if not its value will be changed according to a definite error type */
-	LCD_enumError_t LOC_enumErrorState = LCD_enumOk;
+	 * Initially we assume that everything is OK, if not its value will be changed according to a definite
+	 * error type */
+	LCD_enuError_t LOC_enuErrorStatus = LCD_enuOk;
 
-	/* Some Validations to check that every input is a valid one */
-	if (Copy_puint8SpecialChar == NULL_PTR)
-	{
-		LOC_enumErrorState = LCD_enumNullPointer;
+	/* Check on the Passed Pointer whether it is a NULL pointer or not */
+	if(callBackFn == NULL_PTR){
+		/* if the passed pointer is a NULL, return error */
+		LOC_enuErrorStatus = LCD_enuNullPointer;
 	}
-	else if ((Copy_uint8CGRAMBlockNumber < LCD_enumBlockNumber_1) || (Copy_uint8CGRAMBlockNumber > LCD_enumBlockNumber_8))
-	{
-		LOC_enumErrorState = LCD_enumWrongBlockNumber;
+	else if ((lcdState == stateOperational) && (userReq.state == readyForRequest)){
+		clearProc.callBack = callBackFn;
+		userReq.type = reqClearScreen;
+		userReq.state = busyWithRequest;
 	}
-	else if ((Copy_uint8X < LCD_enumFirstRow) || (Copy_uint8X > LCD_enumSecondRow))
-	{
-		LOC_enumErrorState = LCD_enumWrongRowNumber;
+	else{
+		/* Do Nothing */
 	}
-	else if ((Copy_uint8Y < LCD_enumColumn_1) || (Copy_uint8Y > LCD_enumColumn_40))
-	{
-		LOC_enumErrorState = LCD_enumWrongColumnNumber;
-	}
-	else
-	{
-		/* Seems that everything in inputs is OK, let us start our work :) */
 
-		/* Since that each block in CGRAM is consisted of 8 rows, so to go to the proper location (the beginning
-		 * of the block) we need to shift forward by 8 for each block */
-		uint8 LOC_uint8Location = Copy_uint8CGRAMBlockNumber * 8;
-		uint8 LOC_uint8Counter;
+	return LOC_enuErrorStatus;
+}
 
-		/* Go to the specified block to start save the input pattern in it */
-		LCD_enumWriteCommand(LOC_uint8Location + LCD_CGRAM_START_ADDRESS);
 
-		/* Saving the input pattern inside the block */
-		for (LOC_uint8Counter = 0; LOC_uint8Counter < 8; LOC_uint8Counter++)
-		{
-			LCD_enumWriteData(Copy_puint8SpecialChar[LOC_uint8Counter]);
+/**
+ *@brief : Function that sets the cursor's position.
+ *@param : The row and the column you want the cursor to go at, and a callback function
+ *			you want to be called after finishing your request.
+ *@return: Error State.
+ */
+LCD_enuError_t LCD_enuSetCursorAsync(LCD_enuRowNumber_t row, uint8_t column, void (*callBackFn)(void)){
+	/* A local variable to assign the error state inside it and use only one return in the whole function
+	 * through returning the value of this local variable.
+	 * Initially we assume that everything is OK, if not its value will be changed according to a definite
+	 * error type */
+	LCD_enuError_t LOC_enuErrorStatus = LCD_enuOk;
+
+	/* The compiler will generate the following warning:
+	 * "comparison is always false due to limited range of data type [-Wtype-limits]"
+	 * ignore it */
+	if ((row < LCD_enuFirstRow) || (row > LCD_enuSecondRow)){
+		LOC_enuErrorStatus = LCD_enuWrongRowNumber;
+	}
+	/* The compiler will generate the following warning:
+	 * "comparison is always false due to limited range of data type [-Wtype-limits]"
+	 * ignore it */
+	else if ((column < LCD_enuColumn_1) || (column > LCD_enuColumn_40)){
+		LOC_enuErrorStatus = LCD_enuWrongColumnNumber;
+	}
+	else if ((lcdState == stateOperational) && (userReq.state == readyForRequest)){
+
+		/* Seems like the inputs are correct, then let us go to the required location */
+
+		if (row == LCD_enuFirstRow){
+			userReq.cursorLocation = column;
+		}
+		else{
+			/* Then Copy_uint8X equals LCD_enuSecondRow */
+
+			userReq.cursorLocation = LCD_CGRAM_START_ADDRESS + column;
 		}
 
-		/* Now after the pattern is saved in the block, let's print it :) */
-
-		LCD_enumGotoDDRAM_XY(Copy_uint8X,Copy_uint8Y);
-
-		LCD_enumWriteData(Copy_uint8CGRAMBlockNumber);
-
+		setCursorProc.callBack = callBackFn;
+		userReq.type = reqSetCursor;
+		userReq.state = busyWithRequest;
+	}
+	else{
+		/* Do Nothing */
 	}
 
-	return LOC_enumErrorState;
+	return LOC_enuErrorStatus;
+}
+
+
+/**
+ *@brief : Function that prints a string on the LCD.
+ *@param : String you want to print, a callback function you want to be called after finishing
+ *			your request.
+ *@return: Error State.
+ */
+LCD_enuError_t LCD_enuWriteStringAsync(uint8_t* string, void (*callBackFn)(void)){
+	/* A local variable to assign the error state inside it and use only one return in the whole function
+	 * through returning the value of this local variable.
+	 * Initially we assume that everything is OK, if not its value will be changed according to a definite
+	 * error type */
+	LCD_enuError_t LOC_enuErrorStatus = LCD_enuOk;
+
+	/* Check on the passed pointers whether NULL pointers or can be accessed */
+	if((string == NULL_PTR) || (callBackFn == NULL_PTR)){
+		/* The passed pointer is a NULL pointer, return an error */
+		LOC_enuErrorStatus = LCD_enuNullPointer;
+	}
+	else if ((lcdState == stateOperational) && (userReq.state == readyForRequest)){
+		writeProc.callBack = callBackFn;
+		userReq.string = string;
+		userReq.type = reqWriteString;
+		userReq.state = busyWithRequest;
+	}
+	else{
+		/* Do Nothing */
+	}
+
+	return LOC_enuErrorStatus;
+}
+
+
+/************************************************************************************/
+/************************************************************************************/
+/************************************************************************************/
+/**
+ *@brief : Runnable with periodicity 1 millisecond.
+ *@param : void.
+ *@return: void.
+ */
+void RUNNABLE_LCD(void){
+	/* Jump to the current LCD's state */
+	switch(lcdState){
+	case stateInitialization:
+		LCD_initProcSM();
+		break;
+	case stateOperational:
+		if(userReq.state == busyWithRequest){
+			switch(userReq.type){
+			case reqClearScreen:
+				LCD_cleanProc();
+				break;
+			case reqSetCursor:
+				LCD_setCursorProc();
+				break;
+			case reqWriteString:
+				LCD_writeProc();
+				break;
+			default:
+				/* Do Nothing */
+				break;
+			}
+		}
+		else{
+			/* Do Nothing */
+		}
+		break;
+	case stateOff:
+
+		break;
+	default:
+		/* Do Nothing */
+		break;
+	}
 }
 
 

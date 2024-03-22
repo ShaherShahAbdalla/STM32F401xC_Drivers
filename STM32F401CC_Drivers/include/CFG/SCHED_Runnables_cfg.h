@@ -26,6 +26,7 @@ typedef enum
 	switchRunnable,
 	ctrlLED,
 	trafficLightSM,
+	lcdRunnable,
 
 	/* DO NOT DELETE THIS ↓↓↓, please :)*/
 	_RunnablesNumber_
