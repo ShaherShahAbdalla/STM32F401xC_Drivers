@@ -41,6 +41,10 @@
 /* The reason of "const" is that the scheduler can not add tasks in the runtime */
 extern const runnable_t arrayOfRunnables [_RunnablesNumber_];
 
+typedef struct {
+	uint8_t delayFlag;
+}privateDelayFlag;
+
 
 
 /****************************************************************************************/
@@ -51,7 +55,7 @@ extern const runnable_t arrayOfRunnables [_RunnablesNumber_];
 /* The reason of "volatile" is that */
 static volatile uint32_t pendingTasks = 0;
 
-
+privateDelayFlag arrayOfRunnablesDelayFlag [_RunnablesNumber_] = {0};
 
 /****************************************************************************************/
 /*								Static Functions' Declaration							*/
@@ -69,10 +73,15 @@ static void SCHED_sched(void)
 	static uint32_t timeStamp = 0;
 	for(index = 0; index < _RunnablesNumber_; index++)
 	{
+		if (timeStamp >= arrayOfRunnables[index].firstDelay && arrayOfRunnablesDelayFlag[index].delayFlag == 0)
+		{
+			timeStamp = 0;
+			arrayOfRunnablesDelayFlag[index].delayFlag = 1;
+		}
 		/* Check on the CallBack pointer that it isn't a NULL pointer and check
 		 * if the time of this runnable comes */
 		if((arrayOfRunnables[index].callBackFn)\
-				&& ((timeStamp % (arrayOfRunnables[index].periodicityMS)) == 0))
+				&& ((timeStamp % (arrayOfRunnables[index].periodicityMS)) == 0) && (arrayOfRunnablesDelayFlag[index].delayFlag == 1))
 		{
 			/* If everything is OK, call the CallBackFn of this runnable */
 			arrayOfRunnables[index].callBackFn();

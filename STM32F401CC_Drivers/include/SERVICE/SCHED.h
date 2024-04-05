@@ -39,6 +39,7 @@ typedef void (*runnableCB_t)(void);
 typedef struct{
 	char* name;
 	uint32_t periodicityMS;
+	uint32_t firstDelay;
 	runnableCB_t callBackFn;
 }runnable_t;
 

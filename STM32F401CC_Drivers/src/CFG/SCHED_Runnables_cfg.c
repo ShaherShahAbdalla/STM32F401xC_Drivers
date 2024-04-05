@@ -63,22 +63,24 @@ extern void RUNNABLE_LCD(void);
 const runnable_t arrayOfRunnables [_RunnablesNumber_] = {
 	[toggleTheLED] 		= { .name = "Toggle LED each second",
 							.periodicityMS = 1000,
+							.firstDelay = 10000,
 							.callBackFn = RUNNABLE_toggleLED
-	},
-	[switchRunnable] 	= { .name = "Check the status of the switches",
-							.periodicityMS = 30,
-							.callBackFn = RUNNABLE_SWITCH_getSwitchState
-	},
-	[ctrlLED] 			= { .name = "Control a LED through a switch",
-							.periodicityMS = 50,
-							.callBackFn = RUNNABLE_ctrlLED
-	},
-	[trafficLightSM] 	= { .name = "Traffic light application",
-							.periodicityMS = 1000,
-							.callBackFn = RUNNABLE_trafficLight_stateMachine
-	},
-	[lcdRunnable] 		= { .name = "LCD module",
-							.periodicityMS = 1,
-							.callBackFn = RUNNABLE_LCD
 	}
+//	},
+//	[switchRunnable] 	= { .name = "Check the status of the switches",
+//							.periodicityMS = 30,
+//							.callBackFn = RUNNABLE_SWITCH_getSwitchState
+//	},
+//	[ctrlLED] 			= { .name = "Control a LED through a switch",
+//							.periodicityMS = 50,
+//							.callBackFn = RUNNABLE_ctrlLED
+//	},
+//	[trafficLightSM] 	= { .name = "Traffic light application",
+//							.periodicityMS = 1000,
+//							.callBackFn = RUNNABLE_trafficLight_stateMachine
+//	},
+//	[lcdRunnable] 		= { .name = "LCD module",
+//							.periodicityMS = 1,
+//							.callBackFn = RUNNABLE_LCD
+//	}
 };

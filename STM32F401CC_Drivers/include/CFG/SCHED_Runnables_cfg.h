@@ -23,10 +23,10 @@
 typedef enum
 {
 	toggleTheLED,
-	switchRunnable,
-	ctrlLED,
-	trafficLightSM,
-	lcdRunnable,
+//	switchRunnable,
+//	ctrlLED,
+//	trafficLightSM,
+//	lcdRunnable,
 
 	/* DO NOT DELETE THIS ↓↓↓, please :)*/
 	_RunnablesNumber_
