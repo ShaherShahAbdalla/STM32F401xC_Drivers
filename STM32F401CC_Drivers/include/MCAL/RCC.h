@@ -1051,7 +1051,7 @@ RCC_enuErrorStatus_t RCC_enuDisableAPB1Peripheral(uint32_t Copy_u32APB1Periphera
  *											APB2_TIM9 ~ APB2_TIM11.
  *@return: Error status.
  */
-RCC_enuErrorStatus_t RCC_enuEnableAPB2Peripheraal(uint32_t Copy_u32APB2Peripheral);
+RCC_enuErrorStatus_t RCC_enuEnableAPB2Peripheral(uint32_t Copy_u32APB2Peripheral);
 
 
 /**
