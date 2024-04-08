@@ -452,4 +452,12 @@ LCD_enuError_t LCD_enuSetCursorAsync(LCD_enuRowNumber_t row, uint8_t column, voi
 LCD_enuError_t LCD_enuWriteStringAsync(uint8_t* string, void (*callBackFn)(void));
 
 
+/**
+ *@brief : Function that prints a certain number on the LCD.
+ *@param : Number you want to print.
+ *@return: Error State.
+ */
+LCD_enuError_t LCD_enuWriteNumberAsync(uint64_t Copy_uint64Number, void (*callBackFn)(void));
+
+
 #endif /* LCD_H_ */

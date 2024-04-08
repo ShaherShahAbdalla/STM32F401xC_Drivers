@@ -26,9 +26,10 @@
 
 /* Add here The functions that you will set in the callBackFn member for the runnables */
 extern void RUNNABLE_toggleLED(void);
-extern void RUNNABLE_ctrlLED(void);
-extern void RUNNABLE_SWITCH_getSwitchState(void);
-extern void RUNNABLE_trafficLight_stateMachine(void);
+extern void RUNNABLE_testLCD(void);
+//extern void RUNNABLE_ctrlLED(void);
+//extern void RUNNABLE_SWITCH_getSwitchState(void);
+//extern void RUNNABLE_trafficLight_stateMachine(void);
 extern void RUNNABLE_LCD(void);
 
 
@@ -62,10 +63,14 @@ extern void RUNNABLE_LCD(void);
 const runnable_t arrayOfRunnables [_RunnablesNumber_] = {
 	[toggleTheLED] 		= { .name = "Toggle LED each second",
 							.periodicityMS = 1000,
-							.firstDelay = 10000,
+							.firstDelay = 50,
 							.callBackFn = RUNNABLE_toggleLED
-	}
-//	},
+	},
+	[testLCD] 		= { .name = "Test the LCD driver",
+							.periodicityMS = 1000,
+							.firstDelay = 50,
+							.callBackFn = RUNNABLE_testLCD
+	},
 //	[switchRunnable] 	= { .name = "Check the status of the switches",
 //							.periodicityMS = 30,
 //							.callBackFn = RUNNABLE_SWITCH_getSwitchState
@@ -78,8 +83,9 @@ const runnable_t arrayOfRunnables [_RunnablesNumber_] = {
 //							.periodicityMS = 1000,
 //							.callBackFn = RUNNABLE_trafficLight_stateMachine
 //	},
-//	[lcdRunnable] 		= { .name = "LCD module",
-//							.periodicityMS = 1,
-//							.callBackFn = RUNNABLE_LCD
-//	}
+	[lcdRunnable] 		= { .name = "LCD module",
+							.periodicityMS = 1,
+							.firstDelay = 0,
+							.callBackFn = RUNNABLE_LCD
+	}
 };
