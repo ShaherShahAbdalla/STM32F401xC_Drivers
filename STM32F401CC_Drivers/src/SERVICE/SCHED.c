@@ -29,7 +29,7 @@
 
 
 /* Periodicity of our Scheduler */
-#define SCHED_PERIODICITY_MS		10
+#define SCHED_PERIODICITY_MS		1
 
 
 
