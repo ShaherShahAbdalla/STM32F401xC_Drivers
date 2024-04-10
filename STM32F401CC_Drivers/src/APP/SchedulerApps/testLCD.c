@@ -37,7 +37,7 @@ void dummyCB (void) {
 void RUNNABLE_testLCD(void)
 {
 	static counter = 0;
-	static number = 12345060;
+	static number = 0;
 
 
 	switch (counter) {
