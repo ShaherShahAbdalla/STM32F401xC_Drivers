@@ -129,7 +129,7 @@ process_t initProc;
 
 process_t writeNumProc;
 
-process_t writeCommandProc;
+process_t sendCommandProc;
 
 
 /************************************************************************************/
@@ -896,7 +896,7 @@ static void LCD_writeNumProc(void) {
 
 		/* If the unit digit in the input number is zero then raise the Zero checker flag */
 		if (LOC_uint64InvertedImage == 0) {
-			LOC_uint8ZeroInUnitsChecker = 1;
+			LOC_uint8ZeroInUnitsChecker++;
 		}
 
 		userReq.number /= 10;
@@ -916,7 +916,7 @@ static void LCD_writeNumProc(void) {
 		}
 	}
 	/* If the Zero checker flag is set then print Zero as the last thing to be printed */
-	else if (LOC_uint8ZeroInUnitsChecker == 1)
+	else if (LOC_uint8ZeroInUnitsChecker != 0)
 	{
 		/* Check if We finished all stages of the LCD_writeDataSM or not */
 		if(writeDataSM_remainingStages > 0) {
@@ -926,7 +926,7 @@ static void LCD_writeNumProc(void) {
 		else{
 			/* We finished the printing of one digit */
 			writeDataSM_remainingStages = REMAINING_STAGES_4_BIT_MODE_CASE;
-			LOC_uint8ZeroInUnitsChecker = 0;
+			LOC_uint8ZeroInUnitsChecker--;
 		}
 	} else {
 		/* We finished the Printing of the Whole number */
@@ -984,7 +984,7 @@ static void LCD_writeNumProc(void) {
 
 		/* If the unit digit in the input number is zero then raise the Zero checker flag */
 		if (LOC_uint64InvertedImage == 0) {
-			LOC_uint8ZeroInUnitsChecker = 1;
+			LOC_uint8ZeroInUnitsChecker++;
 		}
 
 		userReq.number /= 10;
@@ -1004,7 +1004,7 @@ static void LCD_writeNumProc(void) {
 		}
 	}
 	/* If the Zero checker flag is set then print Zero as the last thing to be printed */
-	else if (LOC_uint8ZeroInUnitsChecker == 1)
+	else if (LOC_uint8ZeroInUnitsChecker != 0)
 	{
 		/* Check if We finished all stages of the LCD_writeDataSM or not */
 		if(writeDataSM_remainingStages > 0) {
@@ -1014,7 +1014,7 @@ static void LCD_writeNumProc(void) {
 		else{
 			/* We finished the printing of one digit */
 			writeDataSM_remainingStages = REMAINING_STAGES_8_BIT_MODE_CASE;
-			LOC_uint8ZeroInUnitsChecker = 0;
+			LOC_uint8ZeroInUnitsChecker--;
 		}
 	} else {
 		/* We finished the Printing of the Whole number */
@@ -1086,7 +1086,7 @@ static void LCD_cleanProc(void){
  *@param : void.
  *@return: void.
  */
-static void LCD_writeCommandProc(void){
+static void LCD_sendCommandProc(void){
 
 #if (LCD_DATA_BITS_MODE == LCD_FOUR_BITS_MODE)
 	static uint8_t writeCommandSM_remainingStages = REMAINING_STAGES_4_BIT_MODE_CASE;
@@ -1108,7 +1108,7 @@ static void LCD_writeCommandProc(void){
 		writeCommandSM_remainingStages = REMAINING_STAGES_4_BIT_MODE_CASE;
 		userReq.type = NULL;
 		userReq.state = readyForRequest;
-		writeCommandProc.callBack();
+		sendCommandProc.callBack();
 	}
 
 #elif (LCD_DATA_BITS_MODE == LCD_EIGHT_BITS_MODE)
@@ -1276,7 +1276,7 @@ LCD_enuError_t LCD_enuClearScreenAsync(void (*callBackFn)(void)){
  *@param : A command and a callback function you want to be called after finishing your request.
  *@return: Error State.
  */
-LCD_enuError_t LCD_enuWriteCommandAsync(uint8_t Copy_uint8Command ,void (*callBackFn)(void)){
+LCD_enuError_t LCD_enuSendCommandAsync(uint8_t Copy_uint8Command ,void (*callBackFn)(void)){
 	/* A local variable to assign the error state inside it and use only one return in the whole function
 	 * through returning the value of this local variable.
 	 * Initially we assume that everything is OK, if not its value will be changed according to a definite
@@ -1289,7 +1289,7 @@ LCD_enuError_t LCD_enuWriteCommandAsync(uint8_t Copy_uint8Command ,void (*callBa
 		LOC_enuErrorStatus = LCD_enuNullPointer;
 	}
 	else if ((lcdState == stateOperational) && (userReq.state == readyForRequest)){
-		writeCommandProc.callBack = callBackFn;
+		sendCommandProc.callBack = callBackFn;
 		userReq.command = Copy_uint8Command;
 		userReq.type = reqWriteCommand;
 		userReq.state = busyWithRequest;
@@ -1439,7 +1439,7 @@ void RUNNABLE_LCD(void){
 				LCD_writeNumProc();
 				break;
 			case reqWriteCommand:
-				LCD_writeCommandProc();
+				LCD_sendCommandProc();
 				break;
 			default:
 				/* Do Nothing */

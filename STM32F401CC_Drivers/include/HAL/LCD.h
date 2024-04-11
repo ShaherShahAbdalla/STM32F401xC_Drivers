@@ -460,4 +460,12 @@ LCD_enuError_t LCD_enuWriteStringAsync(uint8_t* string, void (*callBackFn)(void)
 LCD_enuError_t LCD_enuWriteNumberAsync(uint64_t Copy_uint64Number, void (*callBackFn)(void));
 
 
+/**
+ *@brief : Function that sends a command to the LCD.
+ *@param : A command and a callback function you want to be called after finishing your request.
+ *@return: Error State.
+ */
+LCD_enuError_t LCD_enuSendCommandAsync(uint8_t Copy_uint8Command ,void (*callBackFn)(void));
+
+
 #endif /* LCD_H_ */

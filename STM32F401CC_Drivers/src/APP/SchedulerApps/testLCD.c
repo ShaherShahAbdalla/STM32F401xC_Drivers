@@ -48,31 +48,57 @@ void RUNNABLE_testLCD(void)
 	{
 	case 0:
 		//LCD_enuWriteStringAsync("0", DummyCB);
+		entryCounter++;
 		break;
 	case 1:
 		LCD_enuWriteNumberAsync(hours, DummyCB);
+		entryCounter++;
 		break;
 	case 2:
 		LCD_enuWriteStringAsync(":", DummyCB);
+		entryCounter++;
 		break;
 	case 3:
 		LCD_enuWriteStringAsync("0", DummyCB);
+		entryCounter++;
 		break;
 	case 4:
 		LCD_enuWriteNumberAsync(minutes, DummyCB);
+		entryCounter++;
 		break;
 	case 5:
 		LCD_enuWriteStringAsync(":", DummyCB);
+		entryCounter++;
 		break;
 	case 6:
 		//LCD_enuWriteStringAsync("0", DummyCB);
+		entryCounter++;
 		break;
 	case 7:
 		LCD_enuWriteNumberAsync(seconds, DummyCB);
+		entryCounter++;
+		break;
+	case 8:
+		LCD_enuSendCommandAsync(LCD_DisplayOFF, DummyCB);
+		entryCounter++;
+		break;
+	case 9:
+		LCD_enuSendCommandAsync(LCD_DisplayON_CursorON_BlinkOFF, DummyCB);
+		entryCounter++;
+		break;
+	case 10:
+		LCD_enuSetCursorAsync(LCD_enuSecondRow, LCD_enuColumn_7, DummyCB);
+		entryCounter++;
+		break;
+	case 11:
+		LCD_enuWriteNumberAsync(seconds, DummyCB);
+		entryCounter++;
+		break;
+	case 12:
+		LCD_enuSendCommandAsync(LCD_ClearDisplay, DummyCB);
+		entryCounter = 0;
 		break;
 	}
-
-	entryCounter++;
 
 
 	//	/* Variables related to the date and time. Initially We are setting them as follows */
