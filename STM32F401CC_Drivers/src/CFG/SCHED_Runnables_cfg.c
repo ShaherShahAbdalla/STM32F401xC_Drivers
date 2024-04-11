@@ -67,7 +67,7 @@ const runnable_t arrayOfRunnables [_RunnablesNumber_] = {
 							.callBackFn = RUNNABLE_toggleLED
 	},
 	[testLCD] 		= { .name = "Test the LCD driver",
-							.periodicityMS = 2000,
+							.periodicityMS = 100,
 							.firstDelay = 50,
 							.callBackFn = RUNNABLE_testLCD
 	},

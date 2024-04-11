@@ -93,26 +93,26 @@ LCD_strLCDPinConfig_t arrayofLCDPinConfig [11] = {
 
 LCD_strLCDPinConfig_t arrayofLCDPinConfig [7] = {
 	/* Write the port and the pin that the D4 pin is connected to */
-	[D4_4BITMODE] = 	{ 	.LCD_port_number = GPIO_PORTB,
-							.LCD_pin_number = GPIO_PIN3	},
+	[D4_4BITMODE] = 	{ 	.LCD_port_number = GPIO_PORTA,
+							.LCD_pin_number = GPIO_PIN0	},
 	/* Write the port and the pin that the D5 pin is connected to */
-	[D5_4BITMODE] = 	{ 	.LCD_port_number = GPIO_PORTB,
-							.LCD_pin_number = GPIO_PIN4	},
+	[D5_4BITMODE] = 	{ 	.LCD_port_number = GPIO_PORTA,
+							.LCD_pin_number = GPIO_PIN1	},
 	/* Write the port and the pin that the D6 pin is connected to */
-	[D6_4BITMODE] = 	{ 	.LCD_port_number = GPIO_PORTB,
-							.LCD_pin_number = GPIO_PIN5	},
+	[D6_4BITMODE] = 	{ 	.LCD_port_number = GPIO_PORTA,
+							.LCD_pin_number = GPIO_PIN2	},
 	/* Write the port and the pin that the D7 pin is connected to */
-	[D7_4BITMODE] = 	{ 	.LCD_port_number = GPIO_PORTB,
-							.LCD_pin_number = GPIO_PIN6	},
+	[D7_4BITMODE] = 	{ 	.LCD_port_number = GPIO_PORTA,
+							.LCD_pin_number = GPIO_PIN3	},
 	/* Write the port and the pin that the Register Select (RS) pin is connected to */
-	[RS_4BITMODE] = 	{ 	.LCD_port_number = GPIO_PORTB,
-							.LCD_pin_number = GPIO_PIN7	},
+	[RS_4BITMODE] = 	{ 	.LCD_port_number = GPIO_PORTA,
+							.LCD_pin_number = GPIO_PIN4	},
 	/* Write the port and the pin that the Read/Write (R/w) pin is connected to */
-	[RW_4BITMODE] = 	{ 	.LCD_port_number = GPIO_PORTB,
-							.LCD_pin_number = GPIO_PIN8	},
+	[RW_4BITMODE] = 	{ 	.LCD_port_number = GPIO_PORTA,
+							.LCD_pin_number = GPIO_PIN5	},
 	/* Write the port and the pin that the Enable (E) pin is connected to */
-	[E_4BITMODE] = 	{ 	.LCD_port_number = GPIO_PORTB,
-						.LCD_pin_number = GPIO_PIN9	}
+	[E_4BITMODE] = 	{ 	.LCD_port_number = GPIO_PORTA,
+						.LCD_pin_number = GPIO_PIN6	}
 };
 
 #endif /* #if (LCD_DATA_BITS_MODE == LCD_EIGHT_BITS_MODE) */

@@ -85,8 +85,8 @@
 };																									*/
 
 LED_strLEDconfig_t arrayofLEDsconfig [NUM_OF_LEDS] = {
-	[ALARM_LED] = { .LED_port_number = GPIO_PORTA,
-					.LED_pin_number = GPIO_PIN0,
+	[ALARM_LED] = { .LED_port_number = GPIO_PORTB,
+					.LED_pin_number = GPIO_PIN15,
 					.connection_type = LED_enuActiveHigh,
 					.init_state = LED_enuOFF
 	},
